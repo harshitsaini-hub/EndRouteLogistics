@@ -79,4 +79,7 @@ public class GeminiService {
             return "AI analysis failed: " + e.getMessage();
         }
     }
+    public String callGeminiRaw(String prompt) {
+    return callGemini(prompt);
+    }
 }

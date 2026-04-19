@@ -271,6 +271,11 @@
         sessionStorage.setItem('erlResult', JSON.stringify({
           origin, destination, cargoType, recommendation: data.recommendation
         }));
+        // Redirect to results page
+        const overlay = document.getElementById('page-transition');
+        overlay.classList.remove('hidden');
+        overlay.classList.add('active');
+        setTimeout(() => { window.location.href = 'results.html'; }, 600);
 
       } catch (err) {
         hide('loadingBox');
