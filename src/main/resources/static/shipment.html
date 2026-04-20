@@ -7,60 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shipment.css">
-  <style>
-    .result-box {
-      margin-top: 2rem;
-      background: #f0fdf4;
-      border: 1.5px solid #10b981;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      display: none;
-    }
-    .result-box.visible { display: block; }
-    .result-title {
-      font-family: 'Manrope', sans-serif;
-      font-weight: 700;
-      color: #065f46;
-      margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .result-text {
-      color: #1e293b;
-      line-height: 1.8;
-      white-space: pre-wrap;
-      font-size: 0.95rem;
-    }
-    .error-box {
-      margin-top: 2rem;
-      background: #fef2f2;
-      border: 1.5px solid #ef4444;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      color: #b91c1c;
-      display: none;
-    }
-    .error-box.visible { display: block; }
-    .loading-box {
-      margin-top: 2rem;
-      display: none;
-      align-items: center;
-      gap: 0.75rem;
-      color: #456084;
-      font-weight: 600;
-    }
-    .loading-box.visible { display: flex; }
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 3px solid #e2e8f0;
-      border-top-color: #456084;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
 </head>
 <body>
   <div class="page-transition-overlay" id="page-transition"></div>
@@ -70,7 +16,7 @@
       <div class="brand-name">End Route Logistics</div>
       <div class="nav-links">
         <a href="index.html">Home</a>
-        <a href="shipment.html" class="active">Ship Now</a>
+        <a href="shipment.html" class="active">Track</a>
         <a href="#">Contact</a>
       </div>
       <div class="nav-actions">
@@ -89,44 +35,30 @@
     <div class="content-wrapper">
       <div class="hero-text">
         <h1 class="hero-heading">
-          Navigate the <span class="hero-accent">Smart Routes</span>
+          Navigate the <span class="hero-accent">Global Currents</span>
         </h1>
         <p class="hero-subtext">
-          AI-powered logistics intelligence for India. Enter pincodes and let Gemini analyze your route instantly.
+          Precision logistics for the modern era. Map your maritime and overland routes with mathematical certainty.
         </p>
       </div>
 
       <div class="search-card">
-        <form class="search-form" onsubmit="return false;">
+        <form class="search-form">
 
           <div class="form-group">
             <label class="form-label">
               <span class="material-symbols-outlined label-icon">location_on</span>
-              Origin Pincode
+              Pickup Location
             </label>
-            <input 
-              class="form-input" 
-              id="originPincode"
-              placeholder="e.g. 110001 (Delhi)" 
-              type="text"
-              maxlength="6"
-              pattern="[0-9]{6}"
-            >
+            <input class="form-input" id="originPincode" placeholder="Enter 6-digit origin pincode e.g. 110001" type="text" maxlength="6">
           </div>
 
           <div class="form-group">
             <label class="form-label">
               <span class="material-symbols-outlined label-icon">location_on</span>
-              Destination Pincode
+              Delivery Location
             </label>
-            <input 
-              class="form-input" 
-              id="destinationPincode"
-              placeholder="e.g. 400001 (Mumbai)" 
-              type="text"
-              maxlength="6"
-              pattern="[0-9]{6}"
-            >
+            <input class="form-input" id="destinationPincode" placeholder="Enter 6-digit destination pincode e.g. 400001" type="text" maxlength="6">
           </div>
 
           <div class="form-group form-group--full">
@@ -134,20 +66,22 @@
               <span class="material-symbols-outlined label-icon">package</span>
               Goods Type
             </label>
-            <div class="select-wrapper">
-              <select class="form-select" id="cargoType">
-                <option disabled selected>Select cargo category</option>
-                <option value="Electronics">Electronics</option>
-                <option value="Clothing">Clothing</option>
-                <option value="Furniture">Furniture</option>
-                <option value="Machinery">Machinery</option>
-                <option value="Perishable Food">Perishable Food</option>
-                <option value="Pharmaceuticals">Pharmaceuticals</option>
-                <option value="Chemicals">Chemicals</option>
-                <option value="Vehicles">Vehicles</option>
-                <option value="Raw Materials">Raw Materials</option>
-              </select>
-              <span class="material-symbols-outlined select-arrow">keyboard_arrow_down</span>
+            <div class="custom-select-wrapper" id="cargoType">
+              <div class="custom-select-trigger">
+                <span class="custom-select-text">Select cargo category</span>
+                <span class="material-symbols-outlined select-arrow">keyboard_arrow_down</span>
+              </div>
+              <div class="custom-options-container">
+                <div class="custom-option" data-value="Clothing">Clothing</div>
+                <div class="custom-option" data-value="Electronics">Electronics</div>
+                <div class="custom-option" data-value="Furniture">Furniture</div>
+                <div class="custom-option" data-value="Machinery">Machinery</div>
+                <div class="custom-option" data-value="Food & Perishables">Food &amp; Perishables</div>
+                <div class="custom-option" data-value="Chemicals">Chemicals</div>
+                <div class="custom-option" data-value="Vehicles">Vehicles</div>
+                <div class="custom-option" data-value="Raw Materials">Raw Materials</div>
+                <div class="custom-option" data-value="Other">Other</div>
+              </div>
             </div>
           </div>
 
@@ -160,36 +94,18 @@
 
         </form>
 
-        <!-- Loading -->
-        <div class="loading-box" id="loadingBox">
-          <div class="spinner"></div>
-          <span>Analyzing route with Gemini AI + Live Weather...</span>
-        </div>
-
-        <!-- Result -->
-        <div class="result-box" id="resultBox">
-          <div class="result-title">
-            <span class="material-symbols-outlined">smart_toy</span>
-            AI Route Analysis
-          </div>
-          <div class="result-text" id="resultText"></div>
-        </div>
-
-        <!-- Error -->
-        <div class="error-box" id="errorBox"></div>
-
         <div class="trust-indicators">
           <div class="trust-item">
             <span class="material-symbols-outlined">verified_user</span>
-            <span>AI Risk Grading</span>
+            <span>Global Compliance</span>
           </div>
           <div class="trust-item">
-            <span class="material-symbols-outlined">wb_sunny</span>
-            <span>Live Weather Data</span>
+            <span class="material-symbols-outlined">rocket_launch</span>
+            <span>Express Transit</span>
           </div>
           <div class="trust-item">
             <span class="material-symbols-outlined">monitoring</span>
-            <span>Smart Carrier Match</span>
+            <span>Live Vessel Trace</span>
           </div>
         </div>
       </div>
@@ -200,12 +116,13 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-brand-name">End Route Logistics</div>
-        <div class="footer-copy">© 2026 End Route Logistics. All rights reserved.</div>
+        <div class="footer-copy">© 2024 End Route Logistics. All rights reserved.</div>
       </div>
       <div class="footer-links">
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
-        <a href="#">Contact</a>
+        <a href="#">Maritime Law</a>
+        <a href="#">Global Compliance</a>
       </div>
       <div class="footer-icons">
         <div class="footer-icon-btn">
@@ -219,80 +136,47 @@
   </footer>
 
   <script>
-    // Page transition in
     document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         const overlay = document.getElementById('page-transition');
         if(overlay) overlay.classList.add('hidden');
       }, 50);
-    });
 
-    // Backend connection
-    document.getElementById('searchBtn').addEventListener('click', async () => {
-      const origin = document.getElementById('originPincode').value.trim();
-      const destination = document.getElementById('destinationPincode').value.trim();
-      const cargoType = document.getElementById('cargoType').value;
 
-      // Validation
-      if (!origin || origin.length !== 6 || isNaN(origin)) {
-        showError("Please enter a valid 6-digit origin pincode.");
-        return;
-      }
-      if (!destination || destination.length !== 6 || isNaN(destination)) {
-        showError("Please enter a valid 6-digit destination pincode.");
-        return;
-      }
-      if (!cargoType || cargoType === "Select cargo category") {
-        showError("Please select a cargo type.");
-        return;
-      }
-
-      // Reset UI
-      hide('resultBox');
-      hide('errorBox');
-      show('loadingBox');
-
-      try {
-        const response = await fetch('http://localhost:8080/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ originPincode: origin, destinationPincode: destination, cargoType })
+      // Custom Select Logic
+      const selectWrapper = document.getElementById('cargoType');
+      if (selectWrapper) {
+        const selectTrigger = selectWrapper.querySelector('.custom-select-trigger');
+        const selectText = selectWrapper.querySelector('.custom-select-text');
+        const options = selectWrapper.querySelectorAll('.custom-option');
+        
+        selectTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectWrapper.classList.toggle('open');
         });
-
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
-
-        const data = await response.json();
-        hide('loadingBox');
-
-        document.getElementById('resultText').textContent = data.recommendation;
-        show('resultBox');
-
-        // Save for Phase 2 results page
-        sessionStorage.setItem('erlResult', JSON.stringify({
-          origin, destination, cargoType, recommendation: data.recommendation
-        }));
-        // Redirect to results page
-        const overlay = document.getElementById('page-transition');
-        overlay.classList.remove('hidden');
-        overlay.classList.add('active');
-        setTimeout(() => { window.location.href = 'results.html'; }, 600);
-
-      } catch (err) {
-        hide('loadingBox');
-        if (err.message.includes('Failed to fetch')) {
-          showError("Cannot connect to backend. Make sure Spring Boot is running on port 8080.");
-        } else {
-          showError("Something went wrong: " + err.message);
-        }
+        
+        options.forEach(option => {
+          option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectText.textContent = option.textContent;
+            selectWrapper.dataset.value = option.dataset.value;
+            selectText.style.color = 'var(--color-on-surface)'; // Update color to indicate selection
+            selectWrapper.classList.remove('open');
+            
+            // Add active class to selected option
+            options.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+          });
+        });
+        
+        // Close custom select when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!selectWrapper.contains(e.target)) {
+            selectWrapper.classList.remove('open');
+          }
+        });
       }
     });
-
-    function show(id) { document.getElementById(id).classList.add('visible'); }
-    function hide(id) { document.getElementById(id).classList.remove('visible'); }
-    function showError(msg) {
-      document.getElementById('errorBox').textContent = msg;
-      show('errorBox');
-    }
   </script>
 </body>
 </html>
