@@ -16,7 +16,15 @@ public class GeminiService {
     @Value("${WEATHER_API_KEY}")
     private String weatherApiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = createRestTemplate();
+
+    private RestTemplate createRestTemplate() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory = 
+            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+        return new RestTemplate(factory);
+    }
 
     public String analyzeRoute(String origin, String destination, String cargoType) {
         String originWeather = getWeather(origin);

@@ -400,6 +400,7 @@
   </footer>
 
   <script>
+    
     // Page transition in
     document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
@@ -408,13 +409,11 @@
       loadCarriers();
     });
 
-    // Grade → color class
     function gradeClass(g) {
       const map = { A:'grade-A', B:'grade-B', C:'grade-C', D:'grade-D', F:'grade-F' };
       return map[g] || 'grade-C';
     }
 
-    // Risk score → bar color
     function riskColor(score) {
       const n = parseInt(score);
       if (n <= 25) return '#10b981';
@@ -422,27 +421,27 @@
       return '#ef4444';
     }
 
-    // Transport mode → icon
     function modeIcon(mode) {
       const map = { Air:'flight', Road:'local_shipping', Rail:'train', Sea:'directions_boat' };
       return map[mode] || 'local_shipping';
     }
 
     async function loadCarriers() {
-      // Read session data
+      // Redirect if no session data
       const raw = sessionStorage.getItem('erlResult');
-      let origin = '110001', destination = '400001', cargoType = 'Electronics';
-
-      if (raw) {
-        try {
-          const saved = JSON.parse(raw);
-          origin = saved.origin || origin;
-          destination = saved.destination || destination;
-          cargoType = saved.cargoType || cargoType;
-        } catch(e) {}
+      if (!raw) {
+        window.location.href = 'shipment.html';
+        return;
       }
 
-      // Update UI labels
+      let origin = '110001', destination = '400001', cargoType = 'Electronics';
+      try {
+        const saved = JSON.parse(raw);
+        origin = saved.origin || origin;
+        destination = saved.destination || destination;
+        cargoType = saved.cargoType || cargoType;
+      } catch(e) {}
+
       document.getElementById('routeLabel').textContent = origin + ' → ' + destination;
       document.getElementById('sumOrigin').textContent = origin;
       document.getElementById('sumDest').textContent = destination;
@@ -462,13 +461,11 @@
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('sumCount').textContent = carriers.length + ' carriers';
 
-        // Show alternative suggestion if present
         if (carriers.length > 0 && carriers[0].alternativeSuggestion) {
           document.getElementById('altText').textContent = carriers[0].alternativeSuggestion;
           document.getElementById('altBanner').classList.add('visible');
         }
 
-        // Render cards
         const grid = document.getElementById('carriersGrid');
         carriers.forEach((carrier, index) => {
           const rank = index + 1;
@@ -482,8 +479,6 @@
           card.innerHTML = `
             <div class="card-rank-bar"></div>
             <div class="card-body">
-
-              <!-- Left -->
               <div class="card-left">
                 <div class="rank-badge">#${rank}</div>
                 <div>
@@ -495,8 +490,6 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Middle stats -->
               <div class="card-stats">
                 <div class="stat-item">
                   <div class="stat-label">Est. Days</div>
@@ -518,16 +511,15 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Right -->
               <div class="card-right">
                 <div class="ai-reason">${carrier.aiReason}</div>
-                <button class="btn-select" onclick="selectCarrier(${JSON.stringify(JSON.stringify(carrier))})">
+                <button class="btn-select"
+                  data-carrier='${JSON.stringify(carrier).replace(/'/g, "&apos;")}'
+                  onclick="selectCarrier(this.getAttribute('data-carrier'))">
                   Select
                   <span class="material-symbols-outlined">arrow_forward</span>
                 </button>
               </div>
-
             </div>
           `;
           grid.appendChild(card);
@@ -545,19 +537,30 @@
     }
 
     function selectCarrier(carrierJson) {
-      const carrier = JSON.parse(carrierJson);
-      // Save selected carrier for Page 4
-      const raw = sessionStorage.getItem('erlResult');
-      let existing = {};
-      try { existing = JSON.parse(raw); } catch(e) {}
-      sessionStorage.setItem('erlSelected', JSON.stringify({ ...existing, selectedCarrier: carrier }));
+      try {
+        const carrier = JSON.parse(carrierJson);
+        const raw = sessionStorage.getItem('erlResult');
+        let existing = {};
+        try { existing = JSON.parse(raw); } catch(e) {}
 
-      // Page transition
-      const overlay = document.getElementById('page-transition');
-      overlay.classList.remove('hidden');
-      overlay.classList.add('active');
-      setTimeout(() => { window.location.href = 'details.html'; }, 500);
+        sessionStorage.setItem('erlSelected', JSON.stringify({
+          origin: existing.origin || '',
+          destination: existing.destination || '',
+          cargoType: existing.cargoType || '',
+          recommendation: existing.recommendation || '',
+          selectedCarrier: carrier
+        }));
+
+        const overlay = document.getElementById('page-transition');
+        overlay.classList.remove('hidden');
+        overlay.classList.add('active');
+        setTimeout(() => { window.location.href = 'details.html'; }, 500);
+
+      } catch(e) {
+        console.error('selectCarrier error:', e);
+        window.location.href = 'details.html';
+      }
     }
-  </script>
+</script>
 </body>
 </html>

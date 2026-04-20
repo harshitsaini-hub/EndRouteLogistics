@@ -1,6 +1,7 @@
 package com.endfielders.EndRouteLogistics;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
@@ -13,12 +14,23 @@ public class CarrierController {
     private CarrierService carrierService;
 
     @PostMapping("/carriers")
-    public List<Map<String, Object>> getCarriers(@RequestBody CarrierRequest request) {
-        return carrierService.getRankedCarriers(
+    public ResponseEntity<?> getCarriers(@RequestBody CarrierRequest request) {
+        // Validate pincodes
+        if (request.getOriginPincode() == null || 
+            !request.getOriginPincode().matches("[0-9]{6}")) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Invalid origin pincode"));
+        }
+        if (request.getDestinationPincode() == null || 
+            !request.getDestinationPincode().matches("[0-9]{6}")) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Invalid destination pincode"));
+        }
+        return ResponseEntity.ok(carrierService.getRankedCarriers(
             request.getOriginPincode(),
             request.getDestinationPincode(),
             request.getCargoType()
-        );
+        ));
     }
 
     static class CarrierRequest {
