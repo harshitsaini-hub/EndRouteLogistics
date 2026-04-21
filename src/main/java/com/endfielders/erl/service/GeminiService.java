@@ -1,4 +1,4 @@
-package com.endfielders.EndRouteLogistics;
+package com.endfielders.erl.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ public class GeminiService {
                 "Origin Pincode: " + origin + " (Weather: " + originWeather + ")\n" +
                 "Destination Pincode: " + destination + " (Weather: " + destWeather + ")\n" +
                 "Cargo Type: " + cargoType + "\n\n" +
-                "Provide: 1) Risk level (Low/Medium/High) 2) Main risks 3) Your recommendation. Keep it concise.";
+                "\"Give a short 1-2 line reason why this carrier is suitable. No formatting, no bold text.\"";
 
         return callGemini(prompt);
     }
@@ -43,12 +43,24 @@ public class GeminiService {
         try {
             String url = "https://api.openweathermap.org/data/2.5/weather?zip="
                     + pincode + ",IN&appid=" + weatherApiKey + "&units=metric";
+
             Map<?, ?> response = restTemplate.getForObject(url, Map.class);
+
+            if (response == null || !response.containsKey("main") || !response.containsKey("weather")) {
+                return "Weather data unavailable";
+            }
+
             Map<?, ?> main = (Map<?, ?>) response.get("main");
             List<?> weatherList = (List<?>) response.get("weather");
+
+            if (weatherList == null || weatherList.isEmpty()) {
+                return "Weather data unavailable";
+            }
+
             Map<?, ?> weatherDesc = (Map<?, ?>) weatherList.get(0);
 
             return weatherDesc.get("description") + ", " + main.get("temp") + "°C";
+
         } catch (Exception e) {
             return "Weather data unavailable";
         }
@@ -57,12 +69,14 @@ public class GeminiService {
     private String callGemini(String prompt) {
         try {
             String url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-                "gemini-2.5-flash:generateContent?key=" + geminiApiKey;
+                    "gemini-2.5-flash:generateContent?key=" + geminiApiKey;
 
             Map<String, Object> textPart = new HashMap<>();
             textPart.put("text", prompt);
+
             Map<String, Object> content = new HashMap<>();
             content.put("parts", List.of(textPart));
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("contents", List.of(content));
 
@@ -72,17 +86,44 @@ public class GeminiService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
 
+            // ✅ SAFETY CHECKS START HERE
+            if (response == null || !response.containsKey("candidates")) {
+                return "No response from AI";
+            }
+
             List<?> candidates = (List<?>) response.get("candidates");
+
+            if (candidates == null || candidates.isEmpty()) {
+                return "No candidates returned";
+            }
+
             Map<?, ?> first = (Map<?, ?>) candidates.get(0);
+
+            if (first == null || !first.containsKey("content")) {
+                return "Invalid AI response";
+            }
+
             Map<?, ?> responseContent = (Map<?, ?>) first.get("content");
+
+            if (responseContent == null || !responseContent.containsKey("parts")) {
+                return "Invalid AI response structure";
+            }
+
             List<?> parts = (List<?>) responseContent.get("parts");
+
+            if (parts == null || parts.isEmpty()) {
+                return "No content generated";
+            }
+
             Map<?, ?> part = (Map<?, ?>) parts.get(0);
 
-            return (String) part.get("text");
+            return part.get("text") != null
+                    ? part.get("text").toString()
+                    : "Empty AI response";
 
         } catch (Exception e) {
-            if (e.getMessage().contains("503")) {
-                return "Service temporarily busy. Please try again in a moment.";
+            if (e.getMessage() != null && e.getMessage().contains("503")) {
+                return "Service temporarily busy. Please try again.";
             }
             return "AI analysis failed: " + e.getMessage();
         }
