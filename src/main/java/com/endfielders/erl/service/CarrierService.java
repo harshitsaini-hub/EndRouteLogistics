@@ -9,6 +9,8 @@ import java.util.*;
 
 @Service
 public class CarrierService {
+    private static final String DEFAULT_AI_INSIGHT = "No AI insight available.";
+    private static final String DEFAULT_CARGO_TYPE = "General goods";
 
     private final GeminiService geminiService;
 
@@ -45,6 +47,11 @@ public class CarrierService {
             boolean fragile,
             boolean perishable){
 
+        String safeCargoType = (cargoType == null || cargoType.isBlank())
+                ? DEFAULT_CARGO_TYPE
+                : cargoType.trim();
+
+
         List<Carrier> carriers = getCarriers();
         List<RankedCarrier> rankedList = new ArrayList<>();
         String weatherSummary = geminiService.buildWeatherSummary(origin, destination);
@@ -59,12 +66,12 @@ public class CarrierService {
             rc.setCostPerKg(c.getCostPerKg());
             rc.setWebsite(c.getWebsite());
             double score = ScoringEngine.calculateScore(
-                    c, cargoType, priority, fragile, perishable, weatherSummary);
+             c, cargoType, priority, fragile, perishable, weatherSummary);
 
             rc.setScore(score);
             rc.setRiskScore((int) (100 - score));
             rc.setGrade(ScoringEngine.assignGrade(score));
-            rc.setAiInsight("Not analyzed by AI");
+            rc.setAiInsight(DEFAULT_AI_INSIGHT);
             rankedList.add(rc);
         }
 
@@ -81,7 +88,7 @@ public class CarrierService {
             "Carrier: " + rc.getName() + "\n" +
             "Mode: " + rc.getMode() + "\n" +
             "Delivery Time: " + rc.getEstimatedDays() + " days\n" +
-            "Cargo: " + cargoType + "\n\n" +
+            "Cargo: " + safeCargoType + "\n\n" +
 
             "Rules:\n" +
             "- 1 short sentence only\n" +
@@ -91,10 +98,11 @@ public class CarrierService {
 
             "Output:"
         );
-        if (insight == null || insight.isBlank()) {
-            insight = "No AI insight available.";
+        if (insight == null || insight.isBlank() || insight.startsWith("AI failed:")) {
+            insight = DEFAULT_AI_INSIGHT;
             }
         rc.setAiInsight(insight);
+        rc.setAiInsight(insight.trim());
         }
         
         return rankedList;

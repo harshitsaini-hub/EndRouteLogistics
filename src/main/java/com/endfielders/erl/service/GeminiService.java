@@ -13,12 +13,17 @@ public class GeminiService {
 
     private static final String WEATHER_UNAVAILABLE = "Weather data unavailable";
     private static final String AI_UNAVAILABLE = "AI insight unavailable";
+    private static final String GENERAL_GOODS = "General goods";
 
     @Value("${GEMINI_API_KEY:}")
     private String geminiApiKey;
 
     @Value("${WEATHER_API_KEY:}")
     private String weatherApiKey;
+
+    @Value("${WEATHER_COUNTRY_CODE:IN}")
+    private String weatherCountryCode;
+
 
     private final RestTemplate restTemplate = createRestTemplate();
 
@@ -33,33 +38,47 @@ public class GeminiService {
     // ================= WEATHER =================
 
     public String buildWeatherSummary(String origin, String destination) {
-        String originWeather = getWeather(origin);
-        String destWeather = getWeather(destination);
+        String originWeather = getWeather(sanitizeLocation(origin));
+        String destWeather = getWeather(sanitizeLocation(destination));
         return "Origin weather: " + originWeather + "; Destination weather: " + destWeather;
     }
 
-    private String getWeather(String pincode) {
+    private String sanitizeLocation(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    @SuppressWarnings("null")
+    private String getWeather(String locationCode) {
         if (weatherApiKey == null || weatherApiKey.isBlank()) {
+            return WEATHER_UNAVAILABLE;
+        }
+                if (locationCode.isBlank()) {
             return WEATHER_UNAVAILABLE;
         }
 
         try {
-        String url = UriComponentsBuilder
-                .fromUriString("https://api.openweathermap.org/data/2.5/weather")
-                .queryParam("zip", pincode + ",IN")
-                .queryParam("appid", weatherApiKey)
-                .queryParam("units", "metric")
-                .toUriString();
+            String countryCode = weatherCountryCode == null || weatherCountryCode.isBlank()
+                    ? "IN"
+                    : weatherCountryCode.trim().toUpperCase(Locale.ROOT);
+            String url = UriComponentsBuilder
+                    .fromUriString("https://api.openweathermap.org/data/2.5/weather")
+                    .queryParam("zip", locationCode + "," + countryCode)
+                    .queryParam("appid", weatherApiKey)
+                    .queryParam("units", "metric")
+                    .toUriString();
 
-            ResponseEntity<Map<String, Object>> responseEntity =
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<Map<String, Object>> responseEntity =
                 restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                null,
-                new org.springframework.core.ParameterizedTypeReference<>() {}
-        );
+                        url,
+                        HttpMethod.GET,
+                        new HttpEntity<>(headers),
+                        new org.springframework.core.ParameterizedTypeReference<>() {
+                        }
+                );
 
-Map<String, Object> response = responseEntity.getBody();
+            Map<String, Object> response = responseEntity.getBody();
 
             if (response == null) return WEATHER_UNAVAILABLE;
 
@@ -99,35 +118,39 @@ Map<String, Object> response = responseEntity.getBody();
         return callGemini(prompt);
     }
 
-private String buildRouteRiskPrompt(String origin, String destination, String cargoType, String weatherSummary) {
+    private String buildRouteRiskPrompt(String origin, String destination, String cargoType, String weatherSummary) {
 
-    String safeCargoType = (cargoType == null || cargoType.isBlank()) ? "General goods" : cargoType;
+        String safeCargoType = (cargoType == null || cargoType.isBlank()) ? GENERAL_GOODS : cargoType.trim();
 
-    return "You are an intelligent logistics decision engine.\n" +
-            "Analyze the shipment and generate a professional risk insight.\n\n" +
-
-            "Shipment Details:\n" +
-            "- Origin: " + origin + "\n" +
-            "- Destination: " + destination + "\n" +
-            "- Cargo: " + safeCargoType + "\n" +
-            "- Conditions: " + weatherSummary + "\n\n" +
+        return "You are an intelligent logistics decision engine.\n" +
+                "Analyze the shipment and generate a professional risk insight.\n\n" +
+                "Shipment Details:\n" +
+                "- Origin: " + origin + "\n" +
+                "- Destination: " + destination + "\n" +
+                "- Cargo: " + safeCargoType + "\n" +
+                "- Conditions: " + weatherSummary + "\n\n" +
 
             "Rules:\n" +
-            "1. Output only 1 short sentence\n" +
-            "2. No emojis, no symbols, no formatting\n" +
-            "3. Sound like a logistics platform, not a chatbot\n" +
-            "4. Focus on risk, speed, and reliability\n" +
-            "5. Avoid generic phrases\n\n" +
+                "Rules:\n" +
+                "1. Output only 1 short sentence\n" +
+                "2. No emojis, no symbols, no formatting\n" +
+                "3. Sound like a logistics platform, not a chatbot\n" +
+                "4. Focus on risk, speed, and reliability\n" +
+                "5. Avoid generic phrases\n\n" +
 
-            "Example style:\n" +
-            "Moderate delay risk due to rain at destination, suitable for non-perishable goods.\n\n" +
+                "Example style:\n" +
+                "Moderate delay risk due to rain at destination, suitable for non-perishable goods.\n\n" +
 
-            "Now generate the insight:";
-}
+                "Now generate the insight:";
+    }
+
 
     private String callGemini(String prompt) {
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
             return AI_UNAVAILABLE;
+        }
+                if (prompt == null || prompt.isBlank()) {
+            return "Prompt is empty";
         }
 
         try {
@@ -154,16 +177,25 @@ private String buildRouteRiskPrompt(String origin, String destination, String ca
                 return "No response from AI";
             }
 
-            List<?> candidates = (List<?>) response.get("candidates");
-            if (candidates.isEmpty()) return "No candidates returned";
+            List<?> candidates = asRawList(response.get("candidates"));
+            if (candidates == null || candidates.isEmpty()) return "No candidates returned";
 
-            Map<?, ?> first = (Map<?, ?>) candidates.get(0);
-            Map<?, ?> contentResp = (Map<?, ?>) first.get("content");
-            List<?> parts = (List<?>) contentResp.get("parts");
+            Map<?, ?> first = asRawMap(candidates.get(0));
+            if (first == null) return "Malformed AI response";
 
-            Map<?, ?> part = (Map<?, ?>) parts.get(0);
+            Map<?, ?> contentResp = asRawMap(first.get("content"));
+            if (contentResp == null) return "Malformed AI response";
 
-            return part.get("text") != null ? part.get("text").toString() : "Empty AI response";
+            List<?> parts = asRawList(contentResp.get("parts"));
+            if (parts == null || parts.isEmpty()) return "Empty AI response";
+
+            Map<?, ?> part = asRawMap(parts.get(0));
+            if (part == null) return "Malformed AI response";
+
+            String text = part.get("text") == null ? "" : part.get("text").toString().trim();
+
+
+            return text.isEmpty() ? "Empty AI response" : text;
 
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().contains("503")) {
@@ -191,6 +223,20 @@ private String buildRouteRiskPrompt(String origin, String destination, String ca
     private List<Object> asList(Object value) {
         if (value instanceof List<?> list) {
             return (List<Object>) list;
+        }
+        return null;
+    }
+
+    private Map<?, ?> asRawMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return map;
+        }
+        return null;
+    }
+
+    private List<?> asRawList(Object value) {
+        if (value instanceof List<?> list) {
+            return list;
         }
         return null;
     }

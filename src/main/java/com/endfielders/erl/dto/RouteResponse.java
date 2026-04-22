@@ -8,6 +8,7 @@ public class RouteResponse {
     private String origin;
     private String destination;
     private String cargoType;
+    private String routeInsight;
     private String timestamp;
     private String status;
 
@@ -22,6 +23,9 @@ public class RouteResponse {
     public String getCargoType() { return cargoType; }
     public void setCargoType(String cargoType) { this.cargoType = cargoType; }
 
+    public String getRouteInsight() { return routeInsight; }
+    public void setRouteInsight(String routeInsight) { this.routeInsight = routeInsight; }
+
     public String getTimestamp() { return timestamp; }
     public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
 
@@ -30,4 +34,4 @@ public class RouteResponse {
 
     public List<RankedCarrier> getCarriers() { return carriers; }
     public void setCarriers(List<RankedCarrier> carriers) { this.carriers = carriers; }
-}
+    }
