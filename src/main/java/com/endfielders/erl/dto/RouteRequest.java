@@ -2,7 +2,9 @@ package com.endfielders.erl.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class RouteRequest {
     
@@ -16,19 +18,23 @@ public class RouteRequest {
     @Schema(example = "400001")
     private String destination;
 
-    @NotBlank(message = "Destination pincode is required")
-    @Pattern(regexp = "^[1-9][0-9]{5}$", message = "Invalid destination pincode")
+    @NotBlank(message = "Cargo type is required")
+    @Size(max = 40, message = "Cargo type must be at most 40 characters")
     @Schema(example = "electronics")
     private String cargoType;
 
+    @NotBlank(message = "Priority is required")
+    @Pattern(regexp = "^(FASTEST|CHEAPEST|BALANCED)$", message = "Priority must be FASTEST, CHEAPEST, or BALANCED")
     @Schema(example = "FASTEST")
     private String priority;
 
+    @NotNull(message = "Fragile flag is required")
     @Schema(example = "true")
     private boolean fragile;
 
+    @NotNull(message = "Perishable flag is required")
     @Schema(example = "false")
-    private boolean perishable;
+    private Boolean perishable;
 
     private String timestamp;
 
@@ -71,19 +77,20 @@ public class RouteRequest {
         this.priority = priority;
     }
 
-    public boolean isFragile() {
+    public Boolean isFragile() {
         return fragile;
     }
 
-    public void setFragile(boolean fragile) {
+    public void setFragile(Boolean fragile) {
         this.fragile = fragile;
     }
 
-    public boolean isPerishable() {
+    public Boolean isPerishable() {
         return perishable;
     }
 
-    public void setPerishable(boolean perishable) {
+    public void setPerishable(Boolean perishable) {
         this.perishable = perishable;
 }
+
 }

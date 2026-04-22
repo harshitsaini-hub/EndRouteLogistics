@@ -7,7 +7,6 @@ import com.endfielders.erl.service.CarrierService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,8 +18,11 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class RouteController {
 
-    @Autowired
-    private CarrierService carrierService;
+    private final CarrierService carrierService;
+
+    public RouteController(CarrierService carrierService) {
+        this.carrierService = carrierService;
+    }
 
     @Operation(summary = "Analyze route and get ranked carriers")
     @PostMapping("/analyze")
@@ -31,8 +33,8 @@ public class RouteController {
                 request.getDestination(),
                 request.getCargoType(),
                 request.getPriority(),
-                request.isFragile(),
-                request.isPerishable()
+                Boolean.TRUE.equals(request.isFragile()),
+                Boolean.TRUE.equals(request.isPerishable())
         );
 
         RouteResponse response = new RouteResponse();
