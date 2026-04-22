@@ -2,25 +2,25 @@ package com.endfielders.erl.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
 @Service
 public class GeminiService {
 
-    @Value("${GEMINI_API_KEY}")
+    @Value("${GEMINI_API_KEY:}")
     private String geminiApiKey;
 
-    @Value("${WEATHER_API_KEY}")
+    @Value("${WEATHER_API_KEY:}")
     private String weatherApiKey;
 
     private final RestTemplate restTemplate = createRestTemplate();
 
     private RestTemplate createRestTemplate() {
-        org.springframework.http.client.SimpleClientHttpRequestFactory factory = 
-            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);
         factory.setReadTimeout(15000);
         return new RestTemplate(factory);
@@ -34,12 +34,16 @@ public class GeminiService {
                 "Origin Pincode: " + origin + " (Weather: " + originWeather + ")\n" +
                 "Destination Pincode: " + destination + " (Weather: " + destWeather + ")\n" +
                 "Cargo Type: " + cargoType + "\n\n" +
-                "\"Give a short 1-2 line reason why this carrier is suitable. No formatting, no bold text.\"";
+                "Give a short 1-2 line reason why this carrier is suitable. No formatting, no bold text.";
 
         return callGemini(prompt);
     }
 
     private String getWeather(String pincode) {
+        if (weatherApiKey == null || weatherApiKey.isBlank()) {
+            return "Weather data unavailable";
+        }
+
         try {
             String url = "https://api.openweathermap.org/data/2.5/weather?zip="
                     + pincode + ",IN&appid=" + weatherApiKey + "&units=metric";
@@ -67,6 +71,10 @@ public class GeminiService {
     }
 
     private String callGemini(String prompt) {
+        if (weatherApiKey == null || weatherApiKey.isBlank()) {
+            return "Weather data unavailable";
+        }
+
         try {
             String url = "https://generativelanguage.googleapis.com/v1beta/models/" +
                     "gemini-2.5-flash:generateContent?key=" + geminiApiKey;
@@ -86,49 +94,42 @@ public class GeminiService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
 
-            // ✅ SAFETY CHECKS START HERE
             if (response == null || !response.containsKey("candidates")) {
                 return "No response from AI";
             }
 
             List<?> candidates = (List<?>) response.get("candidates");
-
             if (candidates == null || candidates.isEmpty()) {
                 return "No candidates returned";
             }
 
             Map<?, ?> first = (Map<?, ?>) candidates.get(0);
-
             if (first == null || !first.containsKey("content")) {
                 return "Invalid AI response";
             }
 
             Map<?, ?> responseContent = (Map<?, ?>) first.get("content");
-
             if (responseContent == null || !responseContent.containsKey("parts")) {
                 return "Invalid AI response structure";
             }
 
             List<?> parts = (List<?>) responseContent.get("parts");
-
             if (parts == null || parts.isEmpty()) {
                 return "No content generated";
             }
 
             Map<?, ?> part = (Map<?, ?>) parts.get(0);
-
-            return part.get("text") != null
-                    ? part.get("text").toString()
-                    : "Empty AI response";
-
-        } catch (Exception e) {
+            return part.get("text") != null ? part.get("text").toString() : "Empty AI response";
+            }
+            catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().contains("503")) {
                 return "Service temporarily busy. Please try again.";
             }
             return "AI analysis failed: " + e.getMessage();
         }
     }
+
     public String callGeminiRaw(String prompt) {
-    return callGemini(prompt);
+        return callGemini(prompt);
     }
 }
