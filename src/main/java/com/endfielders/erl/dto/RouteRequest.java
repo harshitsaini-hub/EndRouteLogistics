@@ -21,6 +21,15 @@ public class RouteRequest {
     @Schema(example = "electronics")
     private String cargoType;
 
+    @Schema(example = "FASTEST")
+    private String priority;
+
+    @Schema(example = "true")
+    private boolean fragile;
+
+    @Schema(example = "false")
+    private boolean perishable;
+
     private String timestamp;
 
     public String getOrigin() {
@@ -53,4 +62,28 @@ public class RouteRequest {
     public void setCargoType(String cargoType) {
         this.cargoType = cargoType;
     }
+
+    public String getPriority() {
+    return priority;
+}
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public boolean isFragile() {
+        return fragile;
+    }
+
+    public void setFragile(boolean fragile) {
+        this.fragile = fragile;
+    }
+
+    public boolean isPerishable() {
+        return perishable;
+    }
+
+    public void setPerishable(boolean perishable) {
+        this.perishable = perishable;
+}
 }

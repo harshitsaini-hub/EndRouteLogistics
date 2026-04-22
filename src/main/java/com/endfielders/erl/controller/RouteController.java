@@ -29,7 +29,10 @@ public class RouteController {
         List<RankedCarrier> ranked = carrierService.getRankedCarriers(
                 request.getOrigin(),
                 request.getDestination(),
-                request.getCargoType()
+                request.getCargoType(),
+                request.getPriority(),
+                request.isFragile(),
+                request.isPerishable()
         );
 
         RouteResponse response = new RouteResponse();

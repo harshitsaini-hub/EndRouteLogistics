@@ -38,7 +38,12 @@ public class CarrierService {
     }
 
     public List<RankedCarrier> getRankedCarriers(
-            String origin, String destination, String cargoType) {
+            String origin,
+            String destination,
+            String cargoType,
+            String priority,
+            boolean fragile,
+            boolean perishable){
 
         List<Carrier> carriers = getCarriers();
         List<RankedCarrier> rankedList = new ArrayList<>();
@@ -52,8 +57,9 @@ public class CarrierService {
             rc.setEstimatedDays(c.getEstimatedDays());
             rc.setCostPerKg(c.getCostPerKg());
             rc.setWebsite(c.getWebsite());
-
-            double score = ScoringEngine.calculateScore(c, cargoType);
+            String weather = geminiService.analyzeRoute(origin, destination, cargoType);
+            double score = ScoringEngine.calculateScore(
+                    c, cargoType, priority, fragile, perishable, weather);
 
             rc.setScore(score);
             rc.setRiskScore((int) (100 - score));
