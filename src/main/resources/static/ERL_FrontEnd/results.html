@@ -18,7 +18,7 @@
       <div class="nav-links">
         <a href="index.html">Home</a>
         <a href="shipment.html">Track</a>
-        <a href="#" class="active">Results</a>
+        <a href="results.html" class="active">Results</a>
       </div>
       <div class="nav-actions">
         <a href="shipment.html" style="text-decoration: none;">
@@ -115,14 +115,15 @@
   }
 
   async function loadCarriers() {
-    const raw = sessionStorage.getItem('erlResult');
+    const raw = sessionStorage.getItem('erlSearchRequest');
+    let saved = {};
 
     let origin = '110001', destination = '400001', cargoType = 'Electronics';
     let isDefault = true;
 
     if (raw) {
       try {
-        const saved = JSON.parse(raw);
+        saved = JSON.parse(raw) || {};
         if (saved.origin) {
           origin = saved.origin;
           isDefault = false;
@@ -132,7 +133,9 @@
           isDefault = false;
         }
         cargoType = saved.cargoType || cargoType;
-      } catch (e) {}
+      } catch (e) {
+        saved = {};
+      }
     }
 
     // UI update
@@ -145,20 +148,24 @@
     const showWarning = isDefault;
 
     try {
-      const response = await fetch('http://localhost:8080/api/carriers', {
+      const response = await fetch('/api/route/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          originPincode: origin,
-          destinationPincode: destination,
-          cargoType: cargoType
+          origin: origin,
+          destination: destination,
+          cargoType: cargoType,
+          priority: saved.priority || 'BALANCED',
+          fragile: Boolean(saved.fragile),
+          perishable: Boolean(saved.perishable)
         })
       });
 
       if (!response.ok) throw new Error();
 
-      const carriers = await response.json();
-      renderCarriers(carriers, showWarning);
+      const result = await response.json();
+      const carriers = Array.isArray(result.carriers) ? result.carriers : [];
+      renderCarriers(carriers, showWarning, result.routeInsight || '');
 
     } catch (err) {
       console.log("Using mock data (backend not responding)");
@@ -184,16 +191,16 @@
         }
       ];
 
-      renderCarriers(mockCarriers, true);
+      renderCarriers(mockCarriers, true, 'Backend unavailable, showing fallback carrier options.');
     }
   }
 
-  function renderCarriers(carriers, showWarning) {
+  function renderCarriers(carriers, showWarning, routeInsight) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('sumCount').textContent = carriers.length + ' carriers';
 
     const grid = document.getElementById('carriersGrid');
-    grid.innerHTML = ''; // 🔥 important: clear old data
+    grid.innerHTML = '';
 
     carriers.forEach((carrier, index) => {
       const rank = index + 1;
@@ -229,13 +236,13 @@
 
             <div class="stat-item">
               <div class="stat-label">Grade</div>
-              <div class="stat-value">${carrier.safetyGrade}</div>
+              <div class="stat-value">${carrier.grade || carrier.safetyGrade || 'N/A'}</div>
             </div>
           </div>
         </div>
 
         <div class="card-right">
-          <div class="ai-reason">"${carrier.aiReason}"</div>
+          <div class="ai-reason">"${carrier.aiInsight || carrier.aiReason || routeInsight || 'No AI insight available.'}"</div>
 
           <button class="btn-select" onclick="selectCarrier('${encodeURIComponent(JSON.stringify(carrier))}')">
             Select Route
@@ -248,16 +255,19 @@
 
     if (showWarning) {
       document.getElementById('mockWarning').style.display = 'block';
+    } else {
+      document.getElementById('mockWarning').style.display = 'none';
     }
   }
 
   function selectCarrier(carrierStr) {
+    sessionStorage.setItem('erlSelectedCarrier', decodeURIComponent(carrierStr));
     const overlay = document.getElementById('page-transition');
     overlay.classList.remove('hidden');
     overlay.classList.add('active');
 
     setTimeout(() => {
-      window.location.href = 'index.html';
+      window.location.href = 'details.html';
     }, 500);
   }
   

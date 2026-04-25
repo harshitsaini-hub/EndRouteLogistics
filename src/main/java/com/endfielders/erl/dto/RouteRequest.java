@@ -30,7 +30,7 @@ public class RouteRequest {
 
     @NotNull(message = "Fragile flag is required")
     @Schema(example = "true")
-    private boolean fragile;
+    private Boolean fragile;
 
     @NotNull(message = "Perishable flag is required")
     @Schema(example = "false")

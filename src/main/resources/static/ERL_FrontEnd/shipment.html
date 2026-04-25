@@ -237,15 +237,17 @@
           const fragile = document.getElementById('fragileToggle').checked;
           const perishable = document.getElementById('perishableToggle').checked;
           
-          if (!origin.match(/^\d{6}$/) || !dest.match(/^\d{6}$/) || !cargo) {
-          alert('Enter valid 6-digit pincodes and select cargo type.');
-          return;
-        } {
-            alert('Please fill in all fields (Pickup Location, Delivery Location, and Goods Type) before searching.');
+          if (!origin.match(/^\d{6}$/) || !dest.match(/^\d{6}$/)) {
+            alert('Enter valid 6-digit pincodes for pickup and delivery locations.');
+            return;
+          }
+
+          if (!cargo) {
+            alert('Please select a goods type before searching.');
             return;
           }
           
-          sessionStorage.setItem('erlResult', JSON.stringify({
+          sessionStorage.setItem('erlSearchRequest', JSON.stringify({
             origin: origin,
             destination: dest,
             cargoType: cargo,
