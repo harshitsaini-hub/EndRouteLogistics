@@ -131,7 +131,6 @@ public class GeminiService {
                 "- Conditions: " + weatherSummary + "\n\n" +
 
             "Rules:\n" +
-                "Rules:\n" +
                 "1. Output only 1 short sentence\n" +
                 "2. No emojis, no symbols, no formatting\n" +
                 "3. Sound like a logistics platform, not a chatbot\n" +

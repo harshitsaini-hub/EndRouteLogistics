@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Tag(name = "Route API", description = "Analyze logistics routes")
@@ -39,22 +40,21 @@ public class RouteController {
                 Boolean.TRUE.equals(request.isFragile()),
                 Boolean.TRUE.equals(request.isPerishable())
         );
-                String routeInsight = geminiService.analyzeRoute(
+
+        String routeInsight = geminiService.analyzeRoute(
                 request.getOrigin(),
                 request.getDestination(),
                 request.getCargoType()
         );
-
         RouteResponse response = new RouteResponse();
         response.setOrigin(request.getOrigin());
         response.setDestination(request.getDestination());
         response.setCargoType(request.getCargoType());
         response.setRouteInsight(routeInsight);
         response.setStatus("SUCCESS");
-        response.setTimestamp(LocalDateTime.now().toString());
+        response.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
         response.setCarriers(ranked);
 
         return response;
     }
-
 }
