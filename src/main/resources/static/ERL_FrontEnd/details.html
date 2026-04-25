@@ -50,6 +50,7 @@
           <div class="kv"><span>Cost per Kg</span><strong id="carrierCost">—</strong></div>
           <div class="kv"><span>Risk Score</span><strong id="carrierRisk">—</strong></div>
           <div class="kv"><span>Grade</span><strong id="carrierGrade">—</strong></div>
+          <div class="kv"><span>Direct Service Link</span><strong><a id="carrierWebsiteLink" href="#" target="_blank" rel="noopener noreferrer">—</a></strong></div>
           <p class="ai-box" id="carrierInsight">AI insight will appear here.</p>
         </article>
 
@@ -102,6 +103,14 @@
         document.getElementById('carrierRisk').textContent = selectedCarrier.riskScore ?? '—';
         document.getElementById('carrierGrade').textContent = selectedCarrier.grade || selectedCarrier.safetyGrade || '—';
         document.getElementById('carrierInsight').textContent = selectedCarrier.aiInsight || selectedCarrier.aiReason || 'No AI insight available.';
+        const websiteLink = document.getElementById('carrierWebsiteLink');
+        if (selectedCarrier.website) {
+          websiteLink.href = selectedCarrier.website;
+          websiteLink.textContent = `Open ${selectedCarrier.name || 'carrier'} website`;
+        } else {
+          websiteLink.removeAttribute('href');
+          websiteLink.textContent = 'No website available';
+        }
       }
     });
   </script>

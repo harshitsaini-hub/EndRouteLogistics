@@ -146,9 +146,10 @@
     document.getElementById('summaryBar').style.display = 'flex';
 
     const showWarning = isDefault;
+    const apiUrl = resolveApiUrl();
 
     try {
-      const response = await fetch('/api/route/analyze', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -244,9 +245,14 @@
         <div class="card-right">
           <div class="ai-reason">"${carrier.aiInsight || carrier.aiReason || routeInsight || 'No AI insight available.'}"</div>
 
-          <button class="btn-select" onclick="selectCarrier('${encodeURIComponent(JSON.stringify(carrier))}')">
-            Select Route
-          </button>
+          <div style="display:flex; gap:0.6rem; justify-content:flex-end; flex-wrap:wrap;">
+            <button class="btn-select" onclick="openCarrierWebsite('${encodeURIComponent(carrier.website || '')}')">
+              Visit Service
+            </button>
+            <button class="btn-select" onclick="selectCarrier('${encodeURIComponent(JSON.stringify(carrier))}')">
+              Select Route
+            </button>
+          </div>
         </div>
       `;
 
@@ -269,6 +275,29 @@
     setTimeout(() => {
       window.location.href = 'details.html';
     }, 500);
+  }
+
+  function openCarrierWebsite(websiteEncoded) {
+    const website = decodeURIComponent(websiteEncoded || '');
+    if (!website) {
+      alert('No direct carrier website is available for this option.');
+      return;
+    }
+    window.open(website, '_blank', 'noopener,noreferrer');
+  }
+
+  function resolveApiUrl() {
+    const sameOrigin = `${window.location.origin}/api/route/analyze`;
+    const localhost = 'http://localhost:8080/api/route/analyze';
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port;
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return (port === '8080' || protocol === 'https:') ? sameOrigin : localhost;
+    }
+
+    return sameOrigin;
   }
   
    </script>
