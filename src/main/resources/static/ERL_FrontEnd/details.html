@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Shipment Details | End Route Logistics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shipment.css">
+  <link rel="stylesheet" href="details.css">
+</head>
+<body>
+  <div class="page-transition-overlay" id="page-transition"></div>
+
+  <header class="top-nav">
+    <nav class="nav-inner">
+      <div class="brand-name">End Route Logistics</div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="shipment.html">Track</a>
+        <a href="results.html" class="active">Details</a>
+      </div>
+      <div class="nav-actions">
+        <a href="results.html" style="text-decoration:none;">
+          <button class="btn-signin">Back to Results</button>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="main-content">
+    <div class="bg-layer">
+      <div class="bg-gradient-overlay"></div>
+      <img alt="Cargo ship background" class="bg-image" src="assets/shipment_red_bg.png">
+    </div>
+
+    <section class="details-content">
+      <div class="details-header">
+        <div class="route-pill"><span class="material-symbols-outlined">inventory_2</span><span id="routeLabel">Route details</span></div>
+        <h1 class="hero-heading">Final <span class="hero-accent">Shipment Plan</span></h1>
+        <p class="hero-sub">Review the selected carrier and shipment summary before booking.</p>
+      </div>
+
+      <div class="details-grid">
+        <article class="details-card">
+          <h2>Selected Carrier</h2>
+          <div class="kv"><span>Name</span><strong id="carrierName">—</strong></div>
+          <div class="kv"><span>Transport Mode</span><strong id="carrierMode">—</strong></div>
+          <div class="kv"><span>Estimated Transit</span><strong id="carrierTransit">—</strong></div>
+          <div class="kv"><span>Cost per Kg</span><strong id="carrierCost">—</strong></div>
+          <div class="kv"><span>Risk Score</span><strong id="carrierRisk">—</strong></div>
+          <div class="kv"><span>Grade</span><strong id="carrierGrade">—</strong></div>
+          <p class="ai-box" id="carrierInsight">AI insight will appear here.</p>
+        </article>
+
+        <article class="details-card">
+          <h2>Shipment Input</h2>
+          <div class="kv"><span>Origin</span><strong id="shipOrigin">—</strong></div>
+          <div class="kv"><span>Destination</span><strong id="shipDestination">—</strong></div>
+          <div class="kv"><span>Cargo Type</span><strong id="shipCargo">—</strong></div>
+          <div class="kv"><span>Priority</span><strong id="shipPriority">—</strong></div>
+          <div class="kv"><span>Fragile</span><strong id="shipFragile">—</strong></div>
+          <div class="kv"><span>Perishable</span><strong id="shipPerishable">—</strong></div>
+
+          <div class="actions">
+            <a class="btn-main" href="shipment.html">Start New Shipment</a>
+            <a class="btn-ghost" href="index.html">Return Home</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const overlay = document.getElementById('page-transition');
+        if (overlay) overlay.classList.add('hidden');
+      }, 50);
+
+      const selectedCarrierRaw = sessionStorage.getItem('erlSelectedCarrier');
+      const requestRaw = sessionStorage.getItem('erlSearchRequest');
+
+      const selectedCarrier = selectedCarrierRaw ? JSON.parse(selectedCarrierRaw) : null;
+      const request = requestRaw ? JSON.parse(requestRaw) : null;
+
+      if (request) {
+        document.getElementById('routeLabel').textContent = `${request.origin || '—'} → ${request.destination || '—'}`;
+        document.getElementById('shipOrigin').textContent = request.origin || '—';
+        document.getElementById('shipDestination').textContent = request.destination || '—';
+        document.getElementById('shipCargo').textContent = request.cargoType || '—';
+        document.getElementById('shipPriority').textContent = request.priority || 'BALANCED';
+        document.getElementById('shipFragile').textContent = request.fragile ? 'Yes' : 'No';
+        document.getElementById('shipPerishable').textContent = request.perishable ? 'Yes' : 'No';
+      }
+
+      if (selectedCarrier) {
+        document.getElementById('carrierName').textContent = selectedCarrier.name || '—';
+        document.getElementById('carrierMode').textContent = selectedCarrier.mode || '—';
+        document.getElementById('carrierTransit').textContent = `${selectedCarrier.estimatedDays ?? '—'} days`;
+        document.getElementById('carrierCost').textContent = selectedCarrier.costPerKg ? `₹${selectedCarrier.costPerKg}/kg` : '—';
+        document.getElementById('carrierRisk').textContent = selectedCarrier.riskScore ?? '—';
+        document.getElementById('carrierGrade').textContent = selectedCarrier.grade || selectedCarrier.safetyGrade || '—';
+        document.getElementById('carrierInsight').textContent = selectedCarrier.aiInsight || selectedCarrier.aiReason || 'No AI insight available.';
+      }
+    });
+  </script>
+</body>
+</html>
