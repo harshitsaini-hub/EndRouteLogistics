@@ -104,3 +104,13 @@
 @media (max-width: 900px) {
   .details-grid { grid-template-columns: 1fr; }
 }
+.ai-reasons {
+  margin-top: 10px;
+  padding-left: 18px;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.ai-reasons li {
+  margin-bottom: 4px;
+}

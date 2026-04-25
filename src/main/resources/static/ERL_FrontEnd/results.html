@@ -115,28 +115,36 @@
   }
 
   async function loadCarriers() {
-    const raw = sessionStorage.getItem('erlSearchRequest');
-    let saved = {};
+    const STORAGE_KEY = 'erlSearchRequest';
+    const raw = sessionStorage.getItem(STORAGE_KEY);
 
-    let origin = '110001', destination = '400001', cargoType = 'Electronics';
-    let isDefault = true;
-
-    if (raw) {
-      try {
-        saved = JSON.parse(raw) || {};
-        if (saved.origin) {
-          origin = saved.origin;
-          isDefault = false;
-        }
-        if (saved.destination) {
-          destination = saved.destination;
-          isDefault = false;
-        }
-        cargoType = saved.cargoType || cargoType;
-      } catch (e) {
-        saved = {};
-      }
+    if (!raw) {
+      window.location.href = 'shipment.html';
+      return;
     }
+
+    let saved = {};
+    let origin = null;
+    let destination = null;
+    let cargoType = null;
+    let isDefault = false;
+
+    try {
+      saved = JSON.parse(raw) || {};
+      console.log("SESSION DATA:", saved);
+
+      origin = saved.origin || null;
+      destination = saved.destination || null;
+      cargoType = saved.cargoType || null;
+
+    } catch (e) {
+      console.error("Invalid session data");
+    }
+      if (!origin || !destination) {
+    document.getElementById('loadingState').innerHTML =
+      '<div style="color:red;">No search data found. Please search again.</div>';
+    return;
+  }
 
     // UI update
     document.getElementById('routeLabel').textContent = origin + ' → ' + destination;
@@ -166,43 +174,66 @@
 
       const result = await response.json();
       const carriers = Array.isArray(result.carriers) ? result.carriers : [];
+      if (carriers.length === 0) {
+           document.getElementById('carriersGrid').innerHTML =
+           '<div style="text-align:center; padding:2rem; color:var(--color-primary); font-weight:600;">No carriers found for this route.</div>';
+      return;
+      }
       renderCarriers(carriers, showWarning, result.routeInsight || '');
 
     } catch (err) {
       console.log("Using mock data (backend not responding)");
+      document.getElementById('loadingState').style.display = 'none';
 
-      const mockCarriers = [
-        {
-          name: "Bharat Air Express",
-          mode: "Air",
-          estimatedDays: 2,
-          costPerKg: 150,
-          riskScore: 10,
-          safetyGrade: "A",
-          aiReason: "Fastest option for high-value cargo."
-        },
-        {
-          name: "Indian Railways Freight",
-          mode: "Rail",
-          estimatedDays: 5,
-          costPerKg: 40,
-          riskScore: 20,
-          safetyGrade: "A",
-          aiReason: "Reliable and stable logistics."
-        }
-      ];
+    const mockCarriers = [
+      {
+        name: "Bharat Air Express",
+        mode: "Air",
+        estimatedDays: 2,
+        costPerKg: 150,
+        riskScore: 10,
+        safetyGrade: "A",
+        aiReason: "Fastest option for high-value cargo.",
+        website: "https://example.com/air-express"
+      },
+      {
+        name: "Indian Railways Freight",
+        mode: "Rail",
+        estimatedDays: 5,
+        costPerKg: 40,
+        riskScore: 20,
+        safetyGrade: "A",
+        aiReason: "Reliable and stable logistics.",
+        website: "https://example.com/rail-freight"
+      }
+    ];
 
       renderCarriers(mockCarriers, true, 'Backend unavailable, showing fallback carrier options.');
     }
   }
 
   function renderCarriers(carriers, showWarning, routeInsight) {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('sumCount').textContent = carriers.length + ' carriers';
-
     const grid = document.getElementById('carriersGrid');
     grid.innerHTML = '';
+    const oldInsight = document.getElementById('routeInsightBox');
+    if (oldInsight) oldInsight.remove();
 
+    if (routeInsight) {
+      const insightDiv = document.createElement('div');
+      insightDiv.id = 'routeInsightBox';
+
+      insightDiv.style.margin = '1rem 0';
+      insightDiv.style.padding = '1rem';
+      insightDiv.style.background = 'rgba(0,0,0,0.05)';
+      insightDiv.style.borderRadius = '10px';
+      insightDiv.style.fontWeight = '600';
+
+      insightDiv.innerText = "AI Insight: " + routeInsight;
+
+      document.querySelector('.results-content').prepend(insightDiv);
+    }
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('sumCount').textContent = carriers.length + ' carriers';
     carriers.forEach((carrier, index) => {
       const rank = index + 1;
 
@@ -299,7 +330,7 @@
 
     return sameOrigin;
   }
-  
+
    </script>
   <style>
     @keyframes spin { 100% { transform: rotate(360deg); } }

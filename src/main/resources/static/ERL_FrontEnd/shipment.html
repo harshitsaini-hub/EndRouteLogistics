@@ -173,11 +173,13 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      // Applied Fix: Constant Storage Key
+      const STORAGE_KEY = 'erlSearchRequest';
+
       setTimeout(() => {
         const overlay = document.getElementById('page-transition');
         if(overlay) overlay.classList.add('hidden');
       }, 50);
-
 
       // Custom Select Logic
       const selectWrappers = document.querySelectorAll('.custom-select-wrapper');
@@ -188,7 +190,6 @@
         
         selectTrigger.addEventListener('click', (e) => {
           e.stopPropagation();
-          // Close others
           selectWrappers.forEach(other => {
             if(other !== selectWrapper) other.classList.remove('open');
           });
@@ -200,18 +201,16 @@
             e.stopPropagation();
             selectText.textContent = option.textContent;
             selectWrapper.dataset.value = option.dataset.value;
-            selectText.style.color = 'var(--color-on-surface)'; // Update color to indicate selection
+            selectText.style.color = 'var(--color-on-surface)';
             selectText.style.fontWeight = '600';
             selectWrapper.classList.remove('open');
             
-            // Add active class to selected option
             options.forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
           });
         });
       });
         
-      // Close custom select when clicking outside
       document.addEventListener('click', (e) => {
         selectWrappers.forEach(selectWrapper => {
           if (!selectWrapper.contains(e.target)) {
@@ -226,18 +225,20 @@
         searchBtn.addEventListener('click', (e) => {
           e.preventDefault();
           
-          // Save search data for results.html
           const origin = document.getElementById('originPincode').value.trim();
           const dest = document.getElementById('destinationPincode').value.trim();
+          
           const cargoWrapper = document.getElementById('cargoType');
-          const cargo = cargoWrapper ? cargoWrapper.dataset.value : '';
+          const cargo = cargoWrapper?.dataset?.value || '';
           
           const priorityWrapper = document.getElementById('priorityType');
-          const priority = priorityWrapper ? priorityWrapper.dataset.value : 'BALANCED';
+          const priority = priorityWrapper?.dataset?.value || 'BALANCED';
+          
           const fragile = document.getElementById('fragileToggle').checked;
           const perishable = document.getElementById('perishableToggle').checked;
           
-          if (!origin.match(/^\d{6}$/) || !dest.match(/^\d{6}$/)) {
+          // Applied Fix: Cleaner Regex Validation
+          if (!/^\d{6}$/.test(origin) || !/^\d{6}$/.test(dest)) {
             alert('Enter valid 6-digit pincodes for pickup and delivery locations.');
             return;
           }
@@ -247,21 +248,41 @@
             return;
           }
           
-          sessionStorage.setItem('erlSearchRequest', JSON.stringify({
+          // Applied Fix: Added Timestamp to Payload
+          const payload = {
             origin: origin,
             destination: dest,
             cargoType: cargo,
             priority: priority,
             fragile: fragile,
-            perishable: perishable
-          }));
+            perishable: perishable,
+            timestamp: new Date().toISOString()
+          };
+
+          // Applied Fix: Failsafe before routing
+          if (!payload.origin || !payload.destination) {
+            console.error("Invalid payload:", payload);
+            return;
+          }
+
+          console.log("Saving to session:", payload);
+          
+          // Applied Fix: Clear old data before saving to prevent stale bugs
+          sessionStorage.removeItem(STORAGE_KEY);
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          
+          console.log("Stored value:", sessionStorage.getItem(STORAGE_KEY));
+
+          if (!sessionStorage.getItem(STORAGE_KEY)) {
+            alert("Failed to store search data. Try again.");
+            return;
+          }
 
           const icon = searchBtn.querySelector('.material-symbols-outlined');
           if (icon) {
             const rect = icon.getBoundingClientRect();
             const computedColor = window.getComputedStyle(icon).color;
             
-            // Create a clone to break out of overflow constraints
             const clone = icon.cloneNode(true);
             clone.style.position = 'fixed';
             clone.style.top = rect.top + 'px';
@@ -276,31 +297,24 @@
             clone.style.justifyContent = 'center';
             clone.style.transition = 'transform 1s cubic-bezier(0.86, 0, 0.07, 1)';
             clone.style.transformOrigin = 'center center';
-            clone.style.pointerEvents = 'none'; // Prevent interaction during animation
+            clone.style.pointerEvents = 'none';
             
             document.body.appendChild(clone);
             
-            // Hide original
             icon.style.opacity = '0';
-            
-            // Force reflow
             void clone.offsetWidth;
             
-            // Animate to center and scale up massively
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
             const moveX = centerX - (rect.left + rect.width / 2);
             const moveY = centerY - (rect.top + rect.height / 2);
             
-            // Scale by 300 to ensure it covers the entire screen
             clone.style.transform = `translate(${moveX}px, ${moveY}px) scale(300)`;
             
-            // Wait for animation, then redirect
             setTimeout(() => {
               window.location.href = 'results.html';
             }, 1000);
           } else {
-            // Fallback if no icon
             window.location.href = 'results.html';
           }
         });

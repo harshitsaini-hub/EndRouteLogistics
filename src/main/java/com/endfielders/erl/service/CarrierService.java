@@ -21,6 +21,7 @@ public class CarrierService {
             create("Ecom Express", "Road", 3, 55, "https://www.ecomexpress.in"),
             create("India Post", "Rail", 7, 20, "https://www.indiapost.gov.in")
     );
+
     public CarrierService(GeminiService geminiService) {
         this.geminiService = geminiService;
     }
@@ -45,17 +46,17 @@ public class CarrierService {
             String cargoType,
             String priority,
             boolean fragile,
-            boolean perishable){
+            boolean perishable) {
 
         String safeCargoType = (cargoType == null || cargoType.isBlank())
                 ? DEFAULT_CARGO_TYPE
                 : cargoType.trim();
 
-
         List<Carrier> carriers = getCarriers();
         List<RankedCarrier> rankedList = new ArrayList<>();
         String weatherSummary = geminiService.buildWeatherSummary(origin, destination);
 
+        // STEP 1: Score carriers
         for (Carrier c : carriers) {
 
             RankedCarrier rc = new RankedCarrier();
@@ -65,47 +66,94 @@ public class CarrierService {
             rc.setEstimatedDays(c.getEstimatedDays());
             rc.setCostPerKg(c.getCostPerKg());
             rc.setWebsite(c.getWebsite());
+
             double score = ScoringEngine.calculateScore(
-             c, cargoType, priority, fragile, perishable, weatherSummary);
+                    c, cargoType, priority, fragile, perishable, weatherSummary);
 
             rc.setScore(score);
             rc.setRiskScore((int) (100 - score));
             rc.setGrade(ScoringEngine.assignGrade(score));
+
             rc.setAiInsight(DEFAULT_AI_INSIGHT);
+            rc.setAiReasons(new ArrayList<>());
+
             rankedList.add(rc);
         }
 
+        // STEP 2: Sort
         rankedList.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
 
+        // STEP 3: Add AI only for top 3
         for (int i = 0; i < Math.min(3, rankedList.size()); i++) {
 
             RankedCarrier rc = rankedList.get(i);
 
-        String insight = geminiService.callGeminiRaw(
-            "You are a logistics ranking engine.\n" +
-            "Explain why this carrier is a strong choice.\n\n" +
+            // ✅ AI Insight
+            String insight = geminiService.callGeminiRaw(
+                    "You are a logistics ranking engine.\n" +
+                    "Explain why this carrier is a strong choice.\n\n" +
 
-            "Carrier: " + rc.getName() + "\n" +
-            "Mode: " + rc.getMode() + "\n" +
-            "Delivery Time: " + rc.getEstimatedDays() + " days\n" +
-            "Cargo: " + safeCargoType + "\n\n" +
+                    "Carrier: " + rc.getName() + "\n" +
+                    "Mode: " + rc.getMode() + "\n" +
+                    "Delivery Time: " + rc.getEstimatedDays() + " days\n" +
+                    "Cargo: " + safeCargoType + "\n\n" +
 
-            "Rules:\n" +
-            "- 1 short sentence only\n" +
-            "- No formatting, no symbols\n" +
-            "- Be specific (speed, cost, reliability)\n" +
-            "- Sound like a product recommendation\n\n" +
+                    "Rules:\n" +
+                    "- 1 short sentence only\n" +
+                    "- No formatting, no symbols\n" +
+                    "- Be specific (speed, cost, reliability)\n\n" +
 
-            "Output:"
-        );
-        if (insight == null || insight.isBlank() || insight.startsWith("AI failed:")) {
-            insight = DEFAULT_AI_INSIGHT;
+                    "Output:"
+            );
+
+            if (insight == null || insight.isBlank() || insight.startsWith("AI failed:")) {
+                insight = DEFAULT_AI_INSIGHT;
             }
-        rc.setAiInsight(insight);
-        rc.setAiInsight(insight.trim());
+
+            rc.setAiInsight(insight.trim());
+
+            // ✅ NEW: AI Reasons (list)
+            String reasonsRaw = geminiService.callGeminiRaw(
+                    "You are a logistics decision engine.\n" +
+                    "Give exactly 3 short reasons why this carrier is a good choice.\n\n" +
+
+                    "Carrier: " + rc.getName() + "\n" +
+                    "Mode: " + rc.getMode() + "\n" +
+                    "Delivery Time: " + rc.getEstimatedDays() + " days\n" +
+                    "Cost per Kg: " + rc.getCostPerKg() + "\n" +
+                    "Cargo: " + safeCargoType + "\n\n" +
+
+                    "Rules:\n" +
+                    "- Exactly 3 lines\n" +
+                    "- Each line max 5 words\n" +
+                    "- No symbols, no numbering\n" +
+                    "- Plain text only\n\n" +
+
+                    "Output:"
+            );
+
+            List<String> reasons = new ArrayList<>();
+
+            if (reasonsRaw != null && !reasonsRaw.isBlank() && !reasonsRaw.startsWith("AI failed")) {
+                reasons = Arrays.stream(reasonsRaw.split("\\n"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .limit(3)
+                        .toList();
+            }
+
+            // fallback safety
+            if (reasons.isEmpty()) {
+                reasons = List.of(
+                        "Balanced performance",
+                        "Reliable delivery",
+                        "Standard pricing"
+                );
+            }
+
+            rc.setAiReasons(reasons);
         }
-        
+
         return rankedList;
     }
-
 }

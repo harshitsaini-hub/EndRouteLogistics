@@ -51,7 +51,7 @@
           <div class="kv"><span>Risk Score</span><strong id="carrierRisk">—</strong></div>
           <div class="kv"><span>Grade</span><strong id="carrierGrade">—</strong></div>
           <div class="kv"><span>Direct Service Link</span><strong><a id="carrierWebsiteLink" href="#" target="_blank" rel="noopener noreferrer">—</a></strong></div>
-          <p class="ai-box" id="carrierInsight">AI insight will appear here.</p>
+          <p class="ai-box" id="carrierInsight">AI insight will appear here.</p><ul class="ai-reasons" id="carrierReasons"><li>Loading reasons...</li></ul>
         </article>
 
         <article class="details-card">
@@ -103,6 +103,34 @@
         document.getElementById('carrierRisk').textContent = selectedCarrier.riskScore ?? '—';
         document.getElementById('carrierGrade').textContent = selectedCarrier.grade || selectedCarrier.safetyGrade || '—';
         document.getElementById('carrierInsight').textContent = selectedCarrier.aiInsight || selectedCarrier.aiReason || 'No AI insight available.';
+        const reasonsList = document.getElementById('carrierReasons');
+
+      if (selectedCarrier) {
+        const reasons = [];
+
+        if (selectedCarrier.estimatedDays <= 3) {
+          reasons.push("Fast delivery");
+        }
+
+        if (selectedCarrier.costPerKg <= 50) {
+          reasons.push("Cost effective");
+        }
+
+        if (selectedCarrier.riskScore < 30) {
+          reasons.push("Low risk shipment");
+        }
+
+        if (selectedCarrier.mode === "Air") {
+          reasons.push("Air transport for speed");
+        }
+
+        // fallback
+        if (reasons.length === 0) {
+          reasons.push("Balanced performance");
+        }
+
+        reasonsList.innerHTML = reasons.map(r => `<li>${r}</li>`).join('');
+}
         const websiteLink = document.getElementById('carrierWebsiteLink');
         if (selectedCarrier.website) {
           websiteLink.href = selectedCarrier.website;
