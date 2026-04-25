@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Route Results | End Route Logistics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shipment.css">
+  <link rel="stylesheet" href="results.css">
+</head>
+<body>
+  <div class="page-transition-overlay" id="page-transition"></div>
+
+  <header class="top-nav">
+    <nav class="nav-inner">
+      <div class="brand-name">End Route Logistics</div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="shipment.html">Track</a>
+        <a href="#" class="active">Results</a>
+      </div>
+      <div class="nav-actions">
+        <a href="shipment.html" style="text-decoration: none;">
+          <button class="btn-signin" style="background-color: var(--color-surface-container-high); color: var(--color-primary); display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s, box-shadow 0.2s;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">arrow_back</span>
+            New Search
+          </button>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="main-content">
+    <div class="bg-layer">
+      <div class="bg-gradient-overlay"></div>
+      <img alt="Cargo ship background" class="bg-image" src="assets/shipment_red_bg.png">
+    </div>
+
+    <div class="results-content">
+      <!-- HERO STRIP -->
+      <div class="hero-strip">
+        <div class="route-pill">
+          <span class="material-symbols-outlined" style="font-size:18px">route</span>
+          <span id="routeLabel">Loading route...</span>
+        </div>
+        <h1 class="hero-heading">AI-Ranked <span class="hero-accent">Carrier Options</span></h1>
+        <p class="hero-sub">Gemini analyzed your cargo type and live logistics conditions to rank these carriers for your shipment.</p>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="summary-bar" id="summaryBar" style="display:none">
+        <div class="summary-item">
+          <div class="summary-label">Origin</div>
+          <div class="summary-value" id="sumOrigin">—</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-label">Destination</div>
+          <div class="summary-value" id="sumDest">—</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-label">Cargo</div>
+          <div class="summary-value" id="sumCargo">—</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-label">Carriers</div>
+          <div class="summary-value" id="sumCount">—</div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loadingState" style="text-align: center; padding: 4rem 0;">
+        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--color-primary); animation: spin 1s linear infinite;">sync</span>
+        <div style="margin-top: 1rem; color: var(--color-primary); font-weight: 700;">Gemini is analyzing your route...</div>
+      </div>
+
+      <!-- Carriers grid -->
+      <div class="carriers-grid" id="carriersGrid"></div>
+      
+      <p class="mock-data-warning" id="mockWarning" style="display:none;">
+        If no data location/destination has entered that means the result above are mock data but real time.
+      </p>
+
+    </div>
+  </main>
+
+  <footer class="site-footer" style="position: relative; z-index: 20;">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-brand-name">End Route Logistics</div>
+        <div class="footer-copy">© 2026 End Route Logistics. Powered by Gemini AI.</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Transport Law</a>
+      </div>
+    </div>
+  </footer>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      document.getElementById('page-transition').classList.add('hidden');
+    }, 50);
+    loadCarriers();
+  });
+
+  function modeImgPath(mode) {
+    const map = { Air: 'assets/air.png', Road: 'assets/road.png', Rail: 'assets/rail.png', Sea: 'assets/sea.png' };
+    return map[mode] || 'assets/road.png';
+  }
+
+  async function loadCarriers() {
+    const raw = sessionStorage.getItem('erlResult');
+
+    let origin = '110001', destination = '400001', cargoType = 'Electronics';
+    let isDefault = true;
+
+    if (raw) {
+      try {
+        const saved = JSON.parse(raw);
+        if (saved.origin) {
+          origin = saved.origin;
+          isDefault = false;
+        }
+        if (saved.destination) {
+          destination = saved.destination;
+          isDefault = false;
+        }
+        cargoType = saved.cargoType || cargoType;
+      } catch (e) {}
+    }
+
+    // UI update
+    document.getElementById('routeLabel').textContent = origin + ' → ' + destination;
+    document.getElementById('sumOrigin').textContent = origin;
+    document.getElementById('sumDest').textContent = destination;
+    document.getElementById('sumCargo').textContent = cargoType;
+    document.getElementById('summaryBar').style.display = 'flex';
+
+    const showWarning = isDefault;
+
+    try {
+      const response = await fetch('http://localhost:8080/api/carriers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originPincode: origin,
+          destinationPincode: destination,
+          cargoType: cargoType
+        })
+      });
+
+      if (!response.ok) throw new Error();
+
+      const carriers = await response.json();
+      renderCarriers(carriers, showWarning);
+
+    } catch (err) {
+      console.log("Using mock data (backend not responding)");
+
+      const mockCarriers = [
+        {
+          name: "Bharat Air Express",
+          mode: "Air",
+          estimatedDays: 2,
+          costPerKg: 150,
+          riskScore: 10,
+          safetyGrade: "A",
+          aiReason: "Fastest option for high-value cargo."
+        },
+        {
+          name: "Indian Railways Freight",
+          mode: "Rail",
+          estimatedDays: 5,
+          costPerKg: 40,
+          riskScore: 20,
+          safetyGrade: "A",
+          aiReason: "Reliable and stable logistics."
+        }
+      ];
+
+      renderCarriers(mockCarriers, true);
+    }
+  }
+
+  function renderCarriers(carriers, showWarning) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('sumCount').textContent = carriers.length + ' carriers';
+
+    const grid = document.getElementById('carriersGrid');
+    grid.innerHTML = ''; // 🔥 important: clear old data
+
+    carriers.forEach((carrier, index) => {
+      const rank = index + 1;
+
+      const card = document.createElement('div');
+      card.className = 'carrier-card';
+
+      card.innerHTML = `
+        <div class="rank-badge">#${rank}</div>
+
+        <div class="mode-img-wrapper">
+          <img src="${modeImgPath(carrier.mode)}" class="mode-img">
+        </div>
+
+        <div class="card-center">
+          <div class="carrier-name">${carrier.name}</div>
+
+          <div class="card-stats">
+            <div class="stat-item">
+              <div class="stat-label">Mode</div>
+              <div class="stat-value">${carrier.mode}</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-label">Transit</div>
+              <div class="stat-value">${carrier.estimatedDays} Days</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-label">Cost</div>
+              <div class="stat-value">₹${carrier.costPerKg}/kg</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-label">Grade</div>
+              <div class="stat-value">${carrier.safetyGrade}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div class="ai-reason">"${carrier.aiReason}"</div>
+
+          <button class="btn-select" onclick="selectCarrier('${encodeURIComponent(JSON.stringify(carrier))}')">
+            Select Route
+          </button>
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+
+    if (showWarning) {
+      document.getElementById('mockWarning').style.display = 'block';
+    }
+  }
+
+  function selectCarrier(carrierStr) {
+    const overlay = document.getElementById('page-transition');
+    overlay.classList.remove('hidden');
+    overlay.classList.add('active');
+
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 500);
+  }
+  
+   </script>
+  <style>
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</body>
+</html>

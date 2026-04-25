@@ -2,51 +2,51 @@
    CSS Custom Properties (Design Tokens)
    ============================================================ */
 :root {
-  --color-primary:                #000c1e;
-  --color-primary-container:      #002344;
-  --color-primary-fixed:          #d3e3ff;
-  --color-primary-fixed-dim:      #adc8f2;
-  --color-on-primary:             #ffffff;
-  --color-on-primary-container:   #708bb2;
-  --color-on-primary-fixed:       #001c38;
-  --color-inverse-primary:        #adc8f2;
+  --color-primary:                #CD1C18;
+  --color-primary-container:      #9B1313;
+  --color-primary-fixed:          #CD1C18;
+  --color-primary-fixed-dim:      #9B1313;
+  --color-on-primary:             #FFA896;
+  --color-on-primary-container:   #FFA896;
+  --color-on-primary-fixed:       #FFA896;
+  --color-inverse-primary:        #CD1C18;
 
-  --color-secondary:              #48626e;
-  --color-secondary-container:    #cbe7f5;
-  --color-secondary-fixed:        #cbe7f5;
-  --color-secondary-fixed-dim:    #afcbd8;
-  --color-on-secondary:           #ffffff;
-  --color-on-secondary-container: #4e6874;
-  --color-on-secondary-fixed:     #021f29;
+  --color-secondary:              #9B1313;
+  --color-secondary-container:    #FFA896;
+  --color-secondary-fixed:        #9B1313;
+  --color-secondary-fixed-dim:    #9B1313;
+  --color-on-secondary:           #FFA896;
+  --color-on-secondary-container: #38000A;
+  --color-on-secondary-fixed:     #FFA896;
 
-  --color-tertiary:               #1b0600;
-  --color-tertiary-container:     #3d1701;
-  --color-tertiary-fixed:         #ffdbca;
-  --color-tertiary-fixed-dim:     #fdb792;
-  --color-on-tertiary:            #ffffff;
-  --color-on-tertiary-container:  #b87b5a;
-  --color-on-tertiary-fixed:      #331100;
+  --color-tertiary:               #38000A;
+  --color-tertiary-container:     #9B1313;
+  --color-tertiary-fixed:         #38000A;
+  --color-tertiary-fixed-dim:     #38000A;
+  --color-on-tertiary:            #FFA896;
+  --color-on-tertiary-container:  #FFA896;
+  --color-on-tertiary-fixed:      #FFA896;
 
-  --color-surface:                #f8fafb;
-  --color-surface-dim:            #d8dadb;
-  --color-surface-bright:         #f8fafb;
-  --color-surface-variant:        #e1e3e4;
-  --color-surface-tint:           #456084;
-  --color-surface-container:      #eceeef;
-  --color-surface-container-low:  #f2f4f5;
-  --color-surface-container-high: #e6e8e9;
-  --color-surface-container-highest: #e1e3e4;
-  --color-surface-container-lowest:  #ffffff;
-  --color-on-surface:             #191c1d;
-  --color-on-surface-variant:     #43474e;
-  --color-inverse-surface:        #2e3132;
-  --color-inverse-on-surface:     #eff1f2;
+  --color-surface:                #FFA896;
+  --color-surface-dim:            #EB9382;
+  --color-surface-bright:         #FFA896;
+  --color-surface-variant:        #F59D8C;
+  --color-surface-tint:           #CD1C18;
+  --color-surface-container:      #F59D8C;
+  --color-surface-container-low:  #FFA896;
+  --color-surface-container-high: #EB9382;
+  --color-surface-container-highest: #E08978;
+  --color-surface-container-lowest:  #FFFFFF;
+  --color-on-surface:             #38000A;
+  --color-on-surface-variant:     #9B1313;
+  --color-inverse-surface:        #38000A;
+  --color-inverse-on-surface:     #FFA896;
 
-  --color-background:             #f8fafb;
-  --color-on-background:          #191c1d;
+  --color-background:             #FFA896;
+  --color-on-background:          #38000A;
 
-  --color-outline:                #74777f;
-  --color-outline-variant:        #c3c6cf;
+  --color-outline:                #9B1313;
+  --color-outline-variant:        #CD1C18;
 
   --color-error:                  #ba1a1a;
   --color-error-container:        #ffdad6;
@@ -113,14 +113,19 @@ button {
    ============================================================ */
 .top-nav {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 3rem);
+  max-width: 1200px;
   z-index: 50;
-  background-color: rgba(255, 255, 255, 0.70);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 12px 40px rgba(0, 12, 30, 0.06);
+  background-color: rgba(255, 255, 255, 0.40);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 12px 40px rgba(155, 19, 19, 0.15);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
 }
 
 .nav-inner {
@@ -155,18 +160,38 @@ button {
 }
 
 .nav-links a {
+  position: relative;
   color: var(--color-on-surface-variant);
+  padding: 0.25rem 0;
+  transition: color 0.3s;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: var(--color-primary);
+  transition: width 0.3s ease;
 }
 
 .nav-links a:hover {
   color: var(--color-primary);
 }
 
+.nav-links a:hover::after {
+  width: 100%;
+}
+
 .nav-links a.active {
   color: var(--color-primary);
   font-weight: 700;
-  border-bottom: 2px solid var(--color-primary-container);
-  padding-bottom: 2px;
+}
+
+.nav-links a.active::after {
+  width: 100%;
 }
 
 .nav-actions {
@@ -218,7 +243,7 @@ button {
   z-index: 10;
   background: linear-gradient(
     to bottom right,
-    rgba(0, 12, 30, 0.10),
+    rgba(56, 0, 10, 0.10),
     var(--color-background)
   );
 }
@@ -285,13 +310,11 @@ button {
 .search-card {
   width: 100%;
   max-width: 56rem;
-  background-color: var(--color-surface-container-lowest);
+  background-color: #FFF2F0;
   border-radius: 2rem;
   padding: 2rem;
-  box-shadow: 0 32px 64px rgba(0, 12, 30, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 32px 64px rgba(56, 0, 10, 0.3);
+  border: 1px solid #FFA896;
 }
 
 @media (min-width: 768px) {
@@ -362,6 +385,18 @@ button {
 .form-input:focus {
   box-shadow: 0 0 0 2px var(--color-surface-tint);
   background-color: var(--color-surface-container-lowest);
+}
+
+/* Chrome Autofill fix */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover, 
+.form-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface-container-high) inset !important;
+  -webkit-text-fill-color: var(--color-on-surface) !important;
+}
+
+.form-input:focus:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface-container-lowest) inset !important;
 }
 
 /* Custom Select */
@@ -458,6 +493,111 @@ button {
   font-weight: 600;
   color: var(--color-primary);
   border-left-color: var(--color-primary);
+}
+
+/* ============================================================
+   Priority Selector
+   ============================================================ */
+.priority-selector {
+  display: flex;
+  gap: 1rem;
+}
+.priority-option {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+.priority-option input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+.priority-option span {
+  display: block;
+  text-align: center;
+  padding: 0.8rem;
+  background-color: var(--color-surface-container-high);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-headline);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-on-surface-variant);
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+.priority-option input:checked ~ span {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary-container);
+  box-shadow: 0 4px 12px rgba(205, 28, 24, 0.2);
+}
+
+/* ============================================================
+   Toggles
+   ============================================================ */
+.form-row-toggles {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  .form-row-toggles {
+    flex-direction: column;
+  }
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem;
+  background-color: var(--color-surface-container-high);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.toggle-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(67, 71, 78, 0.30);
+  transition: .4s;
+  border-radius: 24px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-primary);
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
 }
 
 .form-submit {

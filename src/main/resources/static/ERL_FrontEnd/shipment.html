@@ -29,16 +29,16 @@
     <div class="bg-layer">
       <div class="bg-gradient-overlay"></div>
       <img alt="Cargo ship" class="bg-image"
-        src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4LSrpFgAdMlKLm0z9D8_j7yWqOgNN6ScIiEPklXp9vkSbqUCC8sskbcVb7Wkr6lb9R8rsnqwmXEDJ9t0Jl9H4PnCFqdPjRQo40Sit-BXQMtlWISGiHYUEmjSLrnsArRbTLKSzxH6WRcPZiy4uuN7GAxdv_ZWQliVxS0AU_oR6a7BYuMSGBgBY8AkXYvYEHiAg_Bq7-R85oX92FTaGzcPGTZWpL5ZA5NY9RI6aDNhWjzO2-KxYTg5Q7E96OHKa-LnCAtvPMBSi47A">
+        src="assets/shipment_red_bg.png">
     </div>
 
     <div class="content-wrapper">
       <div class="hero-text">
         <h1 class="hero-heading">
-          Navigate the <span class="hero-accent">Global Currents</span>
+          Navigate the <span class="hero-accent">Indian Supply Chain</span>
         </h1>
         <p class="hero-subtext">
-          Precision logistics for the modern era. Map your maritime and overland routes with mathematical certainty.
+          Precision logistics for modern India. Map your air, rail, and road routes with mathematical certainty.
         </p>
       </div>
 
@@ -59,6 +59,24 @@
               Delivery Location
             </label>
             <input class="form-input" id="destinationPincode" placeholder="Enter 6-digit destination pincode e.g. 400001" type="text" maxlength="6">
+          </div>
+
+          <div class="form-group form-group--full">
+            <label class="form-label">
+              <span class="material-symbols-outlined label-icon">speed</span>
+              Priority
+            </label>
+            <div class="custom-select-wrapper" id="priorityType" data-value="BALANCED">
+              <div class="custom-select-trigger" style="box-shadow: 0 4px 12px rgba(56, 0, 10, 0.08);">
+                <span class="custom-select-text" style="color: var(--color-on-surface); font-weight: 600;">BALANCED</span>
+                <span class="material-symbols-outlined select-arrow">keyboard_arrow_down</span>
+              </div>
+              <div class="custom-options-container">
+                <div class="custom-option" data-value="FASTEST">FASTEST</div>
+                <div class="custom-option selected" data-value="BALANCED">BALANCED</div>
+                <div class="custom-option" data-value="CHEAPEST">CHEAPEST</div>
+              </div>
+            </div>
           </div>
 
           <div class="form-group form-group--full">
@@ -85,6 +103,24 @@
             </div>
           </div>
 
+          <div class="form-group form-group--full form-row-toggles">
+            <label class="toggle-label">
+              <span class="toggle-text">Fragile goods?</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="fragileToggle" class="toggle-input">
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+
+            <label class="toggle-label">
+              <span class="toggle-text">Perishable goods?</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="perishableToggle" class="toggle-input">
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+          </div>
+
           <div class="form-group form-group--full form-submit">
             <button class="btn-search" type="button" id="searchBtn">
               Search Shipping Routes
@@ -97,7 +133,7 @@
         <div class="trust-indicators">
           <div class="trust-item">
             <span class="material-symbols-outlined">verified_user</span>
-            <span>Global Compliance</span>
+            <span>Pan-India Compliance</span>
           </div>
           <div class="trust-item">
             <span class="material-symbols-outlined">rocket_launch</span>
@@ -121,8 +157,8 @@
       <div class="footer-links">
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
-        <a href="#">Maritime Law</a>
-        <a href="#">Global Compliance</a>
+        <a href="#">Transport Law</a>
+        <a href="#">Pan-India Compliance</a>
       </div>
       <div class="footer-icons">
         <div class="footer-icon-btn">
@@ -144,14 +180,18 @@
 
 
       // Custom Select Logic
-      const selectWrapper = document.getElementById('cargoType');
-      if (selectWrapper) {
+      const selectWrappers = document.querySelectorAll('.custom-select-wrapper');
+      selectWrappers.forEach(selectWrapper => {
         const selectTrigger = selectWrapper.querySelector('.custom-select-trigger');
         const selectText = selectWrapper.querySelector('.custom-select-text');
         const options = selectWrapper.querySelectorAll('.custom-option');
         
         selectTrigger.addEventListener('click', (e) => {
           e.stopPropagation();
+          // Close others
+          selectWrappers.forEach(other => {
+            if(other !== selectWrapper) other.classList.remove('open');
+          });
           selectWrapper.classList.toggle('open');
         });
         
@@ -161,6 +201,7 @@
             selectText.textContent = option.textContent;
             selectWrapper.dataset.value = option.dataset.value;
             selectText.style.color = 'var(--color-on-surface)'; // Update color to indicate selection
+            selectText.style.fontWeight = '600';
             selectWrapper.classList.remove('open');
             
             // Add active class to selected option
@@ -168,11 +209,97 @@
             option.classList.add('selected');
           });
         });
+      });
         
-        // Close custom select when clicking outside
-        document.addEventListener('click', (e) => {
+      // Close custom select when clicking outside
+      document.addEventListener('click', (e) => {
+        selectWrappers.forEach(selectWrapper => {
           if (!selectWrapper.contains(e.target)) {
             selectWrapper.classList.remove('open');
+          }
+        });
+      });
+
+      // Search Button Animation and Navigation
+      const searchBtn = document.getElementById('searchBtn');
+      if (searchBtn) {
+        searchBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          // Save search data for results.html
+          const origin = document.getElementById('originPincode').value.trim();
+          const dest = document.getElementById('destinationPincode').value.trim();
+          const cargoWrapper = document.getElementById('cargoType');
+          const cargo = cargoWrapper ? cargoWrapper.dataset.value : '';
+          
+          const priorityWrapper = document.getElementById('priorityType');
+          const priority = priorityWrapper ? priorityWrapper.dataset.value : 'BALANCED';
+          const fragile = document.getElementById('fragileToggle').checked;
+          const perishable = document.getElementById('perishableToggle').checked;
+          
+          if (!origin.match(/^\d{6}$/) || !dest.match(/^\d{6}$/) || !cargo) {
+          alert('Enter valid 6-digit pincodes and select cargo type.');
+          return;
+        } {
+            alert('Please fill in all fields (Pickup Location, Delivery Location, and Goods Type) before searching.');
+            return;
+          }
+          
+          sessionStorage.setItem('erlResult', JSON.stringify({
+            origin: origin,
+            destination: dest,
+            cargoType: cargo,
+            priority: priority,
+            fragile: fragile,
+            perishable: perishable
+          }));
+
+          const icon = searchBtn.querySelector('.material-symbols-outlined');
+          if (icon) {
+            const rect = icon.getBoundingClientRect();
+            const computedColor = window.getComputedStyle(icon).color;
+            
+            // Create a clone to break out of overflow constraints
+            const clone = icon.cloneNode(true);
+            clone.style.position = 'fixed';
+            clone.style.top = rect.top + 'px';
+            clone.style.left = rect.left + 'px';
+            clone.style.width = rect.width + 'px';
+            clone.style.height = rect.height + 'px';
+            clone.style.margin = '0';
+            clone.style.zIndex = '10000';
+            clone.style.color = computedColor;
+            clone.style.display = 'flex';
+            clone.style.alignItems = 'center';
+            clone.style.justifyContent = 'center';
+            clone.style.transition = 'transform 1s cubic-bezier(0.86, 0, 0.07, 1)';
+            clone.style.transformOrigin = 'center center';
+            clone.style.pointerEvents = 'none'; // Prevent interaction during animation
+            
+            document.body.appendChild(clone);
+            
+            // Hide original
+            icon.style.opacity = '0';
+            
+            // Force reflow
+            void clone.offsetWidth;
+            
+            // Animate to center and scale up massively
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const moveX = centerX - (rect.left + rect.width / 2);
+            const moveY = centerY - (rect.top + rect.height / 2);
+            
+            // Scale by 300 to ensure it covers the entire screen
+            clone.style.transform = `translate(${moveX}px, ${moveY}px) scale(300)`;
+            
+            // Wait for animation, then redirect
+            setTimeout(() => {
+              window.location.href = 'results.html';
+            }, 1000);
+          } else {
+            // Fallback if no icon
+            window.location.href = 'results.html';
           }
         });
       }
