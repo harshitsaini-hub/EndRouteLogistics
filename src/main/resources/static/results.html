@@ -331,19 +331,9 @@
     window.open(website, '_blank', 'noopener,noreferrer');
   }
 
-  function resolveApiUrl() {
-    const sameOrigin = `${window.location.origin}/api/route/analyze`;
-    const localhost = 'http://localhost:8080/api/route/analyze';
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-    const port = window.location.port;
-
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return (port === '8080' || protocol === 'https:') ? sameOrigin : localhost;
-    }
-
-    return sameOrigin;
-  }
+function resolveApiUrl() {
+return 'https://endroutelogistics.onrender.com/api/route/analyze';
+}
 
    </script>
   <style>
