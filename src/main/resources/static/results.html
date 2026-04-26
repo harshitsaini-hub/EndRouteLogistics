@@ -70,6 +70,7 @@
           <div class="summary-value" id="sumCount">—</div>
         </div>
       </div>
+      <div class="ai-brief" id="aiBrief" style="display:none"></div>
 
       <!-- Loading -->
       <div class="loading-state" id="loadingState" style="text-align: center; padding: 4rem 0;">
@@ -164,7 +165,7 @@
           origin: origin,
           destination: destination,
           cargoType: cargoType,
-          priority: saved.priority || 'BALANCED',
+          priority: saved.priority,
           fragile: Boolean(saved.fragile),
           perishable: Boolean(saved.perishable)
         })
@@ -179,7 +180,7 @@
            '<div style="text-align:center; padding:2rem; color:var(--color-primary); font-weight:600;">No carriers found for this route.</div>';
       return;
       }
-      renderCarriers(carriers, showWarning, result.routeInsight || '');
+      renderCarriers(carriers, showWarning, result.routeInsight || '', saved);
 
     } catch (err) {
       console.log("Using mock data (backend not responding)");
@@ -208,11 +209,11 @@
       }
     ];
 
-      renderCarriers(mockCarriers, true, 'Backend unavailable, showing fallback carrier options.');
+      renderCarriers(mockCarriers, true, 'Backend unavailable, showing fallback carrier options.', saved);
     }
   }
 
-  function renderCarriers(carriers, showWarning, routeInsight) {
+  function renderCarriers(carriers, showWarning, routeInsight, saved) {
     const grid = document.getElementById('carriersGrid');
     grid.innerHTML = '';
     const oldInsight = document.getElementById('routeInsightBox');
@@ -232,6 +233,19 @@
 
       document.querySelector('.results-content').prepend(insightDiv);
     }
+
+    const aiBrief = document.getElementById('aiBrief');
+    const top = carriers[0] || {};
+    const priority = (saved?.priority || '').toLowerCase();
+    const cargo = saved?.cargoType || 'cargo';
+    const handlingNotes = [];
+    if (saved?.fragile) handlingNotes.push('shock-safe handling');
+    if (saved?.perishable) handlingNotes.push('temperature control');
+    const handlingText = handlingNotes.length ? ` Special handling: ${handlingNotes.join(' + ')}.` : '';
+    const priorityText = priority ? `Priority mode: ${priority}. ` : '';
+    aiBrief.textContent = `AI Route Brief: ${priorityText}Top recommendation is ${top.name || 'the leading carrier'} via ${top.mode || 'the suggested mode'} (~${top.estimatedDays || '?'} days). ${cargo} lanes are ranked by ETA, cost per kg, and risk score.${handlingText}`;
+    aiBrief.style.display = 'block';
+
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('sumCount').textContent = carriers.length + ' carriers';
     carriers.forEach((carrier, index) => {
