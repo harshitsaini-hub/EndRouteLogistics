@@ -8,6 +8,8 @@ public class RankedCarrier extends Carrier {
     private int riskScore;
     private String grade;
     private String aiInsight;
+    private int confidenceScore;
+    private String explanation;
 
     private List<String> aiReasons;
 
@@ -30,4 +32,20 @@ public class RankedCarrier extends Carrier {
 
     public String getAiInsight() { return aiInsight; }
     public void setAiInsight(String aiInsight) { this.aiInsight = aiInsight; }
+
+    public int getConfidenceScore() {
+    return confidenceScore;
+    }
+
+    public void setConfidenceScore(int confidenceScore) {
+        this.confidenceScore = confidenceScore;
+    }
+
+    public String getExplanation() {
+        return explanation;
+    }
+
+    public void setExplanation(String explanation) {
+        this.explanation = explanation;
+    }
 }
