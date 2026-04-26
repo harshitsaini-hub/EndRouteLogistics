@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class CarrierService {
-    private static final String DEFAULT_AI_INSIGHT = "No AI insight available.";
+    private static final String DEFAULT_AI_INSIGHT = "AI suggests this carrier based on cost, speed, and reliability.";
     private static final String DEFAULT_CARGO_TYPE = "General goods";
 
     private final GeminiService geminiService;
-    private final ObjectMapper mapper = new ObjectMapper(); // Reused for performance
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final List<Carrier> CARRIERS = Arrays.asList(
             create("BlueDart", "Air", 2, 120, "https://www.bluedart.com"),
@@ -29,9 +29,7 @@ public class CarrierService {
         this.geminiService = geminiService;
     }
 
-    private List<Carrier> getCarriers() {
-        return CARRIERS;
-    }
+    private List<Carrier> getCarriers() { return CARRIERS; }
 
     private static Carrier create(String name, String mode, int days, double cost, String website) {
         Carrier c = new Carrier();
@@ -44,19 +42,12 @@ public class CarrierService {
     }
 
     public List<RankedCarrier> getRankedCarriers(
-            String origin,
-            String destination,
-            String cargoType,
-            String priority,
-            boolean fragile,
-            boolean perishable) {
+            String origin, String destination, String cargoType,
+            String priority, boolean fragile, boolean perishable) {
 
-        String safeCargoType = (cargoType == null || cargoType.trim().isEmpty())
-                ? DEFAULT_CARGO_TYPE
-                : cargoType.trim();
-        
+        String safeCargoType = (cargoType == null || cargoType.trim().isEmpty()) ? DEFAULT_CARGO_TYPE : cargoType.trim();
         String cargo = safeCargoType.toLowerCase();
-        boolean heavy = cargo.contains("vehicle") || cargo.contains("machinery");
+        
         boolean fragileCargo = cargo.contains("glass") || cargo.contains("electronics") || fragile;
         boolean perishableCargo = cargo.contains("food") || cargo.contains("fish") || cargo.contains("meat") || perishable;
 
@@ -74,33 +65,17 @@ public class CarrierService {
 
             double score = ScoringEngine.calculateScore(
                     c, safeCargoType, priority, fragileCargo, perishableCargo, weatherSummary);
-
-            if (weatherSummary != null) {
-                String weather = weatherSummary.toLowerCase();
-                if (weather.contains("rain") || weather.contains("storm")) {
-                    if (c.getMode().equalsIgnoreCase("Road")) score -= 10;
-                    if (c.getMode().equalsIgnoreCase("Air")) score -= 5;
-                }
-                if (weather.contains("fog")) {
-                    if (c.getMode().equalsIgnoreCase("Air")) score -= 15;
-                }
-                if (weather.contains("heat")) {
-                    if (perishableCargo) score -= 10;
+            
+            boolean isLocal = origin != null && destination != null && origin.equals(destination);
+            if (isLocal) {
+                if (c.getMode().equalsIgnoreCase("Road")) {
+                    score += 40;
+                    rc.setEstimatedDays(1);
+                } else if (c.getMode().equalsIgnoreCase("Air") || c.getMode().equalsIgnoreCase("Rail")) {
+                    score -= 50;
                 }
             }
             
-            if (heavy) {
-                if (c.getMode().equalsIgnoreCase("Road")) score += 15;
-                if (c.getMode().equalsIgnoreCase("Air")) score += 5;
-            }
-            if (fragileCargo) {
-                if (c.getMode().equalsIgnoreCase("Air")) score += 15;
-            }
-            if (perishableCargo) {
-                if (c.getMode().equalsIgnoreCase("Air")) score += 20;
-                if (c.getMode().equalsIgnoreCase("Rail")) score -= 10;
-            }
-
             score = Math.max(0, Math.min(100, score));
             rc.setScore(score);
             rc.setRiskScore((int) Math.max(0, 100 - score));
@@ -120,68 +95,69 @@ public class CarrierService {
 
         for (int i = 0; i < Math.min(1, rankedList.size()); i++) {
             RankedCarrier rc = rankedList.get(i);
-
-            String aiResponseRaw = geminiService.callGemini(
-                "You are a logistics AI.\n" +
-                "Return STRICT JSON only. Do not use markdown code blocks.\n\n" +
-                "{\n" +
-                "  \"insight\": \"1 sentence explanation why this is suitable for " + safeCargoType + "\",\n" +
-                "  \"reasons\": [\"short reason 1\", \"short reason 2\", \"short reason 3\"],\n" +
-                "  \"explanation\": \"1 sentence explaining why this got the top rank\"\n" +
-                "}\n\n" +
-                "Carrier: " + rc.getName() + "\n" +
-                "Mode: " + rc.getMode() + "\n" +
-                "Delivery Time: " + rc.getEstimatedDays() + " days\n" +
-                "Cost: " + rc.getCostPerKg() + "\n" +
-                "Cargo: " + safeCargoType + "\n" +
-                "Weather: " + weatherSummary
-            );
-
+            String safeWeather = (weatherSummary == null) ? "clear" : weatherSummary;
+            
+            String prompt = """
+            You are a logistics AI.
+            Your task is to analyze ONE carrier and return a JSON response.
+            IMPORTANT RULES:
+            - Return ONLY JSON
+            - No markdown
+            - No explanation outside JSON
+            FORMAT:
+            {
+            "insight": "1 short sentence why this carrier is suitable",
+            "reasons": ["reason 1", "reason 2", "reason 3"],
+            "explanation": "1 short sentence why this carrier ranked high"
+            }
+            INPUT:
+            Carrier: %s
+            Mode: %s
+            Delivery Time: %d days
+            Cost: %.2f
+            Cargo: %s
+            Weather: %s
+            """.formatted(rc.getName(), rc.getMode(), rc.getEstimatedDays(), rc.getCostPerKg(), safeCargoType, safeWeather);
+            
+            String aiResponseRaw = geminiService.callGemini(prompt);
+            
             try {
                 if (aiResponseRaw != null && !aiResponseRaw.trim().isEmpty()) {
-
                     String cleanJson = aiResponseRaw.replace("```json", "").replace("```", "").trim();
+                    int start = cleanJson.indexOf("{");
+                    int end = cleanJson.lastIndexOf("}");
+
+                    if (start != -1 && end != -1) {
+                        cleanJson = cleanJson.substring(start, end + 1);
+                    }
                     Map<?, ?> map = mapper.readValue(cleanJson, Map.class);
 
-                    if (map.containsKey("insight")) {
-                        rc.setAiInsight(map.get("insight").toString());
-                    }
+                    if (map.containsKey("insight")) rc.setAiInsight(map.get("insight").toString());
+                    if (map.containsKey("explanation")) rc.setExplanation(map.get("explanation").toString());
                     if (map.containsKey("reasons") && map.get("reasons") instanceof List<?>) {
                         List<String> parsedReasons = ((List<?>) map.get("reasons")).stream()
-                                .map(Object::toString)
-                                .limit(3)
-                                .collect(Collectors.toList());
-                        if (!parsedReasons.isEmpty()) {
-                            rc.setAiReasons(parsedReasons);
-                        }
-                    }
-                    if (map.containsKey("explanation")) {
-                        rc.setExplanation(map.get("explanation").toString());
+                                .map(Object::toString).limit(3).collect(Collectors.toList());
+                        if (!parsedReasons.isEmpty()) rc.setAiReasons(parsedReasons);
                     }
                 }
-            } catch (Exception ignored) {
-
+            } catch (Exception e) {
+                System.out.println("[WARN] AI Parse Issue, falling back to defaults.");
             }
         }
-
         return rankedList;
     }
 
     private int calculateConfidence(double score, int riskScore, String weatherSummary, RankedCarrier rc) {
         int base = (int) score;
-
         if (riskScore > 50) base -= 10;
         if (riskScore > 70) base -= 15;
-
         if (rc.getEstimatedDays() <= 2) base += 5;
         if (rc.getCostPerKg() > 100) base -= 5;
-
         if (weatherSummary != null) {
             String weather = weatherSummary.toLowerCase();
             if (weather.contains("storm") || weather.contains("rain")) base -= 10;
             if (weather.contains("clear")) base += 5;
         }
-
         return Math.max(0, Math.min(100, base));
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> body = new HashMap<>();
         body.put("status", "VALIDATION_ERROR");
-        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
         body.put("errors", fieldErrors);
 
         return ResponseEntity.badRequest().body(body);
@@ -31,10 +32,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
+        
+        System.err.println("[ERL CRITICAL ERROR] Something broke:");
+        ex.printStackTrace();
+
         Map<String, Object> body = new HashMap<>();
         body.put("status", "ERROR");
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("message", "Unexpected server error");
+        body.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
+
+        body.put("message", "Unexpected server error: " + ex.getMessage()); 
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }

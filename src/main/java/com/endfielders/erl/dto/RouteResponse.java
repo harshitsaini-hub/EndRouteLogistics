@@ -11,7 +11,6 @@ public class RouteResponse {
     private String routeInsight;
     private String timestamp;
     private String status;
-
     private List<RankedCarrier> carriers;
 
     public String getOrigin() { return origin; }
@@ -34,4 +33,4 @@ public class RouteResponse {
 
     public List<RankedCarrier> getCarriers() { return carriers; }
     public void setCarriers(List<RankedCarrier> carriers) { this.carriers = carriers; }
-    }
+}

@@ -7,7 +7,6 @@ public class Carrier {
     private double costPerKg;
     private String website;
 
-    // Proper Getters and Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -22,5 +21,4 @@ public class Carrier {
 
     public String getWebsite() { return website; }
     public void setWebsite(String website) { this.website = website; }
-
 }

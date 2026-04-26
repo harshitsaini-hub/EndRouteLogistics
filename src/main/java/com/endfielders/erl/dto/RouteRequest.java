@@ -38,59 +38,24 @@ public class RouteRequest {
 
     private String timestamp;
 
-    public String getOrigin() {
-        return origin;
-    }
+    public String getOrigin() { return origin; }
+    public void setOrigin(String origin) { this.origin = origin; }
 
-    public void setOrigin(String origin) {
-        this.origin = origin;
-    }
+    public String getDestination() { return destination; }
+    public void setDestination(String destination) { this.destination = destination; }
 
-    public String getDestination() {
-        return destination;
-    }
+    public String getCargoType() { return cargoType; }
+    public void setCargoType(String cargoType) { this.cargoType = cargoType; }
 
-    public void setDestination(String destination) {
-        this.destination = destination;
-    }
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
 
-    public String getTimestamp() {
-        return timestamp;
-    }
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
-    }
+    public Boolean isFragile() { return fragile; }
+    public void setFragile(Boolean fragile) { this.fragile = fragile; }
 
-    public String getCargoType() {
-        return cargoType;
-    }
+    public Boolean isPerishable() { return perishable; }
+    public void setPerishable(Boolean perishable) { this.perishable = perishable; }
 
-    public void setCargoType(String cargoType) {
-        this.cargoType = cargoType;
-    }
-
-    public String getPriority() {
-    return priority;
-}
-
-    public void setPriority(String priority) {
-        this.priority = priority;
-    }
-
-    public Boolean isFragile() {
-        return fragile;
-    }
-
-    public void setFragile(Boolean fragile) {
-        this.fragile = fragile;
-    }
-
-    public Boolean isPerishable() {
-        return perishable;
-    }
-
-    public void setPerishable(Boolean perishable) {
-        this.perishable = perishable;
-}
-
+    public String getTimestamp() { return timestamp; }
+    public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
 }
