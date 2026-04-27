@@ -102,17 +102,6 @@
   background-color: rgba(155, 19, 19, 0.2);
 }
 
-.ai-brief {
-  margin-bottom: 1.6rem;
-  background: linear-gradient(135deg, rgba(255, 242, 240, .98), rgba(255, 226, 220, .92));
-  border: 1px solid #FFA896;
-  border-radius: 1rem;
-  padding: 1rem 1.2rem;
-  color: var(--color-primary);
-  font-weight: 700;
-  line-height: 1.45;
-}
-
 .carriers-grid {
   display: flex;
   flex-direction: column;

@@ -24,7 +24,7 @@
   --color-on-surface:               #38000A;
   --color-on-surface-variant:       #9B1313;
 
-  --color-background:               #ffe9e3;
+  --color-background:               #FFA896;
   --color-on-background:            #38000A;
   --color-outline:                  #9B1313;
   --color-outline-variant:          #CD1C18;
@@ -95,10 +95,19 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2.5rem;
+  padding: 0.75rem 1rem;
   border-radius: var(--radius-full);
   border: 1px solid rgba(255, 255, 255, 0.6);
   transition: all 0.3s ease;
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .top-nav {
+    padding: 1rem 2.5rem;
+    flex-wrap: nowrap;
+  }
 }
 
 .brand-name {
@@ -110,14 +119,20 @@ button {
 }
 
 .nav-links {
-  display: none;
-  gap: 2rem;
+  display: flex;
+  gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  order: 3;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
   .nav-links {
-    display: flex;
+    gap: 2rem;
+    order: unset;
+    width: auto;
   }
 }
 
@@ -187,7 +202,7 @@ button {
    ============================================================ */
 .hero-section {
   position: relative;
-  min-height: 100vh;
+  min-height: 921px;
   display: flex;
   align-items: center;
   padding: 0 3rem;
@@ -271,20 +286,6 @@ button {
 }
 
 .feature-card {
-
-  .score-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.1);
-  margin-top: 10px;
-  overflow: hidden;
-}
-
-.score-fill {
-  height: 100%;
-  background: var(--color-primary);
-}
-
   padding: 2rem;
   border-radius: var(--radius-xl);
   background-color: var(--color-surface-container-lowest);
@@ -654,43 +655,4 @@ button {
   opacity: 1;
   pointer-events: all;
   transform: translateY(0);
-}
-/* ===============================
-   AI UI Elements (ADD THIS)
-   =============================== */
-
-.score-badge {
-  background: var(--color-primary);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-  margin-bottom: 6px;
-}
-
-.score-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.1);
-  margin-top: 6px;
-  overflow: hidden;
-}
-
-.score-fill {
-  height: 100%;
-  background: var(--color-primary);
-}
-
-.risk-low { color: #2e7d32; font-weight: 600; }
-.risk-medium { color: #f57c00; font-weight: 600; }
-.risk-high { color: #d32f2f; font-weight: 600; }
-
-.ai-insight {
-  background: rgba(0,0,0,0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  margin-top: 10px;
 }

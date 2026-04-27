@@ -22,7 +22,10 @@
       </div>
       <div class="nav-actions">
         <a href="results.html" style="text-decoration:none;">
-          <button class="btn-signin">Back to Results</button>
+          <button class="btn-signin" style="background-color: var(--color-surface-container-high); color: var(--color-primary); display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s, box-shadow 0.2s;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">arrow_back</span>
+            Back to Results
+          </button>
         </a>
       </div>
     </nav>
@@ -56,8 +59,8 @@
 
         <article class="details-card">
           <h2>Shipment Input</h2>
-          <div class="kv"><span>Origin</span><strong id="shipOrigin">—</strong></div>
-          <div class="kv"><span>Destination</span><strong id="shipDestination">—</strong></div>
+          <div class="kv"><span>Pickup Location</span><strong id="shipOrigin">—</strong></div>
+          <div class="kv"><span>Delivery Location</span><strong id="shipDestination">—</strong></div>
           <div class="kv"><span>Cargo Type</span><strong id="shipCargo">—</strong></div>
           <div class="kv"><span>Priority</span><strong id="shipPriority">—</strong></div>
           <div class="kv"><span>Fragile</span><strong id="shipFragile">—</strong></div>
@@ -65,12 +68,25 @@
 
           <div class="actions">
             <a class="btn-main" href="shipment.html">Start New Shipment</a>
-            <a class="btn-ghost" href="index.html">Return Home</a>
           </div>
         </article>
       </div>
     </section>
   </main>
+
+  <footer class="site-footer" style="position: relative; z-index: 20;">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-brand-name">End Route Logistics</div>
+        <div class="footer-copy">© 2026 End Route Logistics. Powered by Gemini AI.</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Transport Law</a>
+      </div>
+    </div>
+  </footer>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -80,7 +96,7 @@
       }, 50);
 
       const selectedCarrierRaw = sessionStorage.getItem('erlSelectedCarrier');
-      const requestRaw = sessionStorage.getItem('erlSearchRequest');
+      const requestRaw = sessionStorage.getItem('erlResult');
 
       const selectedCarrier = selectedCarrierRaw ? JSON.parse(selectedCarrierRaw) : null;
       const request = requestRaw ? JSON.parse(requestRaw) : null;
@@ -134,10 +150,13 @@
         const websiteLink = document.getElementById('carrierWebsiteLink');
         if (selectedCarrier.website) {
           websiteLink.href = selectedCarrier.website;
-          websiteLink.textContent = `Open ${selectedCarrier.name || 'carrier'} website`;
+          websiteLink.textContent = selectedCarrier.name;
+        } else if (selectedCarrier.name) {
+          websiteLink.href = `https://www.google.com/search?q=${encodeURIComponent(selectedCarrier.name)}+official+site`;
+          websiteLink.textContent = selectedCarrier.name;
         } else {
           websiteLink.removeAttribute('href');
-          websiteLink.textContent = 'No website available';
+          websiteLink.textContent = 'No link available';
         }
       }
     });

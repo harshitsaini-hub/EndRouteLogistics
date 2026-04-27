@@ -9,6 +9,12 @@
 .details-header {
   text-align: center;
   margin-bottom: 2rem;
+  animation: fadeInDown 0.6s ease;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .route-pill {
@@ -45,6 +51,27 @@
   border-radius: 1.5rem;
   box-shadow: 0 12px 24px rgba(56, 0, 10, 0.08);
   padding: 1.5rem;
+  transition: transform 0.4s cubic-bezier(0.86, 0, 0.07, 1), box-shadow 0.4s cubic-bezier(0.86, 0, 0.07, 1), border-color 0.4s ease;
+  animation: slideUp 0.6s ease both;
+}
+
+.details-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.details-card:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.details-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 32px 64px rgba(56, 0, 10, 0.25);
+  border-color: var(--color-primary);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .details-card h2 {
@@ -62,6 +89,19 @@
 
 .kv span { color: var(--color-on-surface-variant); }
 .kv strong { color: var(--color-on-surface); }
+
+#carrierWebsiteLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 800;
+  transition: color 0.2s, transform 0.2s;
+  display: inline-block;
+}
+
+#carrierWebsiteLink:hover {
+  color: var(--color-surface-tint);
+  transform: translateX(2px);
+}
 
 .ai-box {
   margin-top: 1rem;
@@ -88,6 +128,18 @@
   border-radius: var(--radius-full);
   padding: 0.7rem 1.1rem;
   font-weight: 700;
+  transition: transform 0.3s cubic-bezier(0.86, 0, 0.07, 1), box-shadow 0.3s cubic-bezier(0.86, 0, 0.07, 1);
+}
+
+.btn-main:hover,
+.btn-ghost:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(205, 28, 24, 0.3);
+}
+
+.btn-main:active,
+.btn-ghost:active {
+  transform: scale(0.95);
 }
 
 .btn-main {

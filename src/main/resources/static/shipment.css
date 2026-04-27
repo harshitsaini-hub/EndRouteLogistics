@@ -132,9 +132,18 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.75rem 1rem;
   max-width: 100%;
   margin: 0 auto;
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .nav-inner {
+    padding: 1rem 2rem;
+    flex-wrap: nowrap;
+  }
 }
 
 .brand-name {
@@ -146,16 +155,22 @@ button {
 }
 
 .nav-links {
-  display: none;
+  display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
   font-family: var(--font-headline);
   letter-spacing: -0.02em;
+  flex-wrap: wrap;
+  justify-content: center;
+  order: 3;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
   .nav-links {
-    display: flex;
+    gap: 2rem;
+    order: unset;
+    width: auto;
   }
 }
 
