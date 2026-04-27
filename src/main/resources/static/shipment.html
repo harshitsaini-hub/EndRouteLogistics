@@ -66,14 +66,14 @@
               <span class="material-symbols-outlined label-icon">speed</span>
               Priority
             </label>
-            <div class="custom-select-wrapper" id="priorityType">
+            <div class="custom-select-wrapper" id="priorityType" data-value="BALANCED">
               <div class="custom-select-trigger" style="box-shadow: 0 4px 12px rgba(56, 0, 10, 0.08);">
-                <span class="custom-select-text">Select shipment priority</span>
+                <span class="custom-select-text" style="color: var(--color-on-surface); font-weight: 600;">BALANCED</span>
                 <span class="material-symbols-outlined select-arrow">keyboard_arrow_down</span>
               </div>
               <div class="custom-options-container">
                 <div class="custom-option" data-value="FASTEST">FASTEST</div>
-                <div class="custom-option" data-value="BALANCED">BALANCED</div>
+                <div class="custom-option selected" data-value="BALANCED">BALANCED</div>
                 <div class="custom-option" data-value="CHEAPEST">CHEAPEST</div>
               </div>
             </div>
@@ -144,16 +144,6 @@
             <span>Live Vessel Trace</span>
           </div>
         </div>
-
-        <div class="ai-copilot-card" id="aiCopilotCard" style="margin-top: 1.1rem; border: 1px solid rgba(255,168,150,.65); border-radius: 1.2rem; background: rgba(255,242,240,.92); padding: 1rem 1.1rem;">
-          <div style="display:flex; align-items:center; gap:.55rem; color:var(--color-primary); font-weight:800;">
-            <span class="material-symbols-outlined">psychology</span>
-            AI Shipping Copilot
-          </div>
-          <p id="copilotMessage" style="margin:.6rem 0 0; color: var(--color-on-surface-variant); line-height:1.45;">
-            Select shipment details and I will draft an AI route brief before you search.
-          </p>
-        </div>
       </div>
     </div>
   </main>
@@ -183,39 +173,14 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // Applied Fix: Constant Storage Key
-      const STORAGE_KEY = 'erlSearchRequest';
-
       setTimeout(() => {
         const overlay = document.getElementById('page-transition');
         if(overlay) overlay.classList.add('hidden');
       }, 50);
 
+
       // Custom Select Logic
       const selectWrappers = document.querySelectorAll('.custom-select-wrapper');
-      const copilotMessage = document.getElementById('copilotMessage');
-
-      const updateCopilot = () => {
-        const origin = document.getElementById('originPincode').value.trim();
-        const dest = document.getElementById('destinationPincode').value.trim();
-        const cargo = document.getElementById('cargoType')?.dataset?.value;
-        const priority = document.getElementById('priorityType')?.dataset?.value;
-        const fragile = document.getElementById('fragileToggle').checked;
-        const perishable = document.getElementById('perishableToggle').checked;
-
-        if (!origin || !dest || !cargo || !priority) {
-          copilotMessage.textContent = 'Select shipment details and I will draft an AI route brief before you search.';
-          return;
-        }
-
-        const flags = [];
-        if (fragile) flags.push('fragile-handling required');
-        if (perishable) flags.push('temperature/rush routing needed');
-        const riskHint = flags.length ? ` with ${flags.join(' and ')}` : '';
-
-        copilotMessage.textContent = `AI brief: ${cargo} from ${origin} to ${dest} with ${priority.toLowerCase()} preference${riskHint}. I will prioritize carriers with stable ETAs and stronger safety grades.`;
-      };
-
       selectWrappers.forEach(selectWrapper => {
         const selectTrigger = selectWrapper.querySelector('.custom-select-trigger');
         const selectText = selectWrapper.querySelector('.custom-select-text');
@@ -223,6 +188,7 @@
         
         selectTrigger.addEventListener('click', (e) => {
           e.stopPropagation();
+          // Close others
           selectWrappers.forEach(other => {
             if(other !== selectWrapper) other.classList.remove('open');
           });
@@ -234,17 +200,18 @@
             e.stopPropagation();
             selectText.textContent = option.textContent;
             selectWrapper.dataset.value = option.dataset.value;
-            selectText.style.color = 'var(--color-on-surface)';
+            selectText.style.color = 'var(--color-on-surface)'; // Update color to indicate selection
             selectText.style.fontWeight = '600';
             selectWrapper.classList.remove('open');
             
+            // Add active class to selected option
             options.forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
-            updateCopilot();
           });
         });
       });
         
+      // Close custom select when clicking outside
       document.addEventListener('click', (e) => {
         selectWrappers.forEach(selectWrapper => {
           if (!selectWrapper.contains(e.target)) {
@@ -255,78 +222,41 @@
 
       // Search Button Animation and Navigation
       const searchBtn = document.getElementById('searchBtn');
-      ['originPincode', 'destinationPincode', 'fragileToggle', 'perishableToggle'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updateCopilot);
-        document.getElementById(id).addEventListener('change', updateCopilot);
-      });
-
       if (searchBtn) {
         searchBtn.addEventListener('click', (e) => {
           e.preventDefault();
           
+          // Save search data for results.html
           const origin = document.getElementById('originPincode').value.trim();
           const dest = document.getElementById('destinationPincode').value.trim();
-          
           const cargoWrapper = document.getElementById('cargoType');
-          const cargo = cargoWrapper?.dataset?.value || '';
+          const cargo = cargoWrapper ? cargoWrapper.dataset.value : '';
           
           const priorityWrapper = document.getElementById('priorityType');
-          const priority = priorityWrapper?.dataset?.value || '';
-          
+          const priority = priorityWrapper ? priorityWrapper.dataset.value : 'BALANCED';
           const fragile = document.getElementById('fragileToggle').checked;
           const perishable = document.getElementById('perishableToggle').checked;
           
-          // Applied Fix: Cleaner Regex Validation
-          if (!/^\d{6}$/.test(origin) || !/^\d{6}$/.test(dest)) {
-            alert('Enter valid 6-digit pincodes for pickup and delivery locations.');
-            return;
-          }
-
-          if (!cargo) {
-            alert('Please select a goods type before searching.');
-            return;
-          }
-
-          if (!priority) {
-            alert('Please select a shipping priority before searching.');
+          if (!origin || !dest || !cargo) {
+            alert('Please fill in all fields (Pickup Location, Delivery Location, and Goods Type) before searching.');
             return;
           }
           
-          // Applied Fix: Added Timestamp to Payload
-          const payload = {
+          sessionStorage.setItem('erlResult', JSON.stringify({
             origin: origin,
             destination: dest,
             cargoType: cargo,
             priority: priority,
             fragile: fragile,
-            perishable: perishable,
-            timestamp: new Date().toISOString()
-          };
-
-          // Applied Fix: Failsafe before routing
-          if (!payload.origin || !payload.destination) {
-            console.error("Invalid payload:", payload);
-            return;
-          }
-
-          console.log("Saving to session:", payload);
-          
-          // Applied Fix: Clear old data before saving to prevent stale bugs
-          sessionStorage.removeItem(STORAGE_KEY);
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-          
-          console.log("Stored value:", sessionStorage.getItem(STORAGE_KEY));
-
-          if (!sessionStorage.getItem(STORAGE_KEY)) {
-            alert("Failed to store search data. Try again.");
-            return;
-          }
+            perishable: perishable
+          }));
 
           const icon = searchBtn.querySelector('.material-symbols-outlined');
           if (icon) {
             const rect = icon.getBoundingClientRect();
             const computedColor = window.getComputedStyle(icon).color;
             
+            // Create a clone to break out of overflow constraints
             const clone = icon.cloneNode(true);
             clone.style.position = 'fixed';
             clone.style.top = rect.top + 'px';
@@ -341,30 +271,35 @@
             clone.style.justifyContent = 'center';
             clone.style.transition = 'transform 1s cubic-bezier(0.86, 0, 0.07, 1)';
             clone.style.transformOrigin = 'center center';
-            clone.style.pointerEvents = 'none';
+            clone.style.pointerEvents = 'none'; // Prevent interaction during animation
             
             document.body.appendChild(clone);
             
+            // Hide original
             icon.style.opacity = '0';
+            
+            // Force reflow
             void clone.offsetWidth;
             
+            // Animate to center and scale up massively
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
             const moveX = centerX - (rect.left + rect.width / 2);
             const moveY = centerY - (rect.top + rect.height / 2);
             
+            // Scale by 300 to ensure it covers the entire screen
             clone.style.transform = `translate(${moveX}px, ${moveY}px) scale(300)`;
             
+            // Wait for animation, then redirect
             setTimeout(() => {
               window.location.href = 'results.html';
             }, 1000);
           } else {
+            // Fallback if no icon
             window.location.href = 'results.html';
           }
         });
       }
-
-      updateCopilot();
     });
   </script>
 </body>
