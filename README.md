@@ -42,13 +42,13 @@ This project was developed as part of the Google Solution Challenge 2026.
 
 This project was developed as part of the Google Solution Challenge 2026.
 
-# Harshit Saini
+### Harshit Saini
 Backend Engineering, AI Integration, System Architecture, Deployment
-# Aditya Paswan
+### Aditya Paswan
 Frontend Development and UI Design
-# Mayank Sharma
+### Mayank Sharma
 Research support, requirement discussions, and project coordination
-# Parv Modi
+### Parv Modi
 Ideation support and final-phase review
 
 This project reflects a collaborative effort, combining system design, user experience, and problem-solving to build an AI-powered logistics solution.
