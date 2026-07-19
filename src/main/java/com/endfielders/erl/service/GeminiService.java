@@ -33,6 +33,7 @@ public class GeminiService {
         factory.setReadTimeout(15000);
         return new RestTemplate(factory);
     }
+
     public String buildWeatherSummary(String origin, String destination) {
         String originWeather = getWeather(sanitizeLocation(origin));
         String destWeather = getWeather(sanitizeLocation(destination));
@@ -72,14 +73,21 @@ public class GeminiService {
         }
     }
 
-    public String analyzeRoute(String origin, String destination, String cargoType) {
-        String weatherSummary = buildWeatherSummary(origin, destination);
+    /**
+     * Analyze route using a pre-fetched weather summary to avoid duplicate API calls.
+     */
+    public String analyzeRouteWithWeather(String origin, String destination, String cargoType, String weatherSummary) {
         String prompt = buildRouteRiskPrompt(origin, destination, cargoType, weatherSummary);
         String aiResponse = callGemini(prompt);
         if (aiResponse == null || aiResponse.isBlank()) {
             return generateFallbackInsight(origin, destination, cargoType);
         }
         return aiResponse;
+    }
+
+    public String analyzeRoute(String origin, String destination, String cargoType) {
+        String weatherSummary = buildWeatherSummary(origin, destination);
+        return analyzeRouteWithWeather(origin, destination, cargoType, weatherSummary);
     }
 
     private String buildRouteRiskPrompt(String origin, String destination, String cargoType, String weatherSummary) {

@@ -32,6 +32,7 @@ public class RouteController {
     @PostMapping("/analyze")
     public RouteResponse analyzeRoute(@Valid @RequestBody RouteRequest request) {
 
+        // getRankedCarriers now runs weather + both Gemini calls in parallel
         List<RankedCarrier> ranked = carrierService.getRankedCarriers(
                 request.getOrigin(),
                 request.getDestination(),
@@ -41,11 +42,9 @@ public class RouteController {
                 Boolean.TRUE.equals(request.isPerishable())
         );
 
-        String routeInsight = geminiService.analyzeRoute(
-                request.getOrigin(),
-                request.getDestination(),
-                request.getCargoType()
-        );
+        // Route insight was already computed in parallel — no extra API call needed
+        String routeInsight = carrierService.getLastRouteInsight();
+
         RouteResponse response = new RouteResponse();
         response.setOrigin(request.getOrigin());
         response.setDestination(request.getDestination());
