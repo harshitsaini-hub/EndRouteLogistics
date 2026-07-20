@@ -32,11 +32,14 @@ public class RouteController {
     @PostMapping("/analyze")
     public RouteResponse analyzeRoute(@Valid @RequestBody RouteRequest request) {
 
+        // Resolve effective cargo type (uses customCargoType when cargoType is "Other")
+        String effectiveCargoType = request.getEffectiveCargoType();
+
         // getRankedCarriers now runs weather + both Gemini calls in parallel
         List<RankedCarrier> ranked = carrierService.getRankedCarriers(
                 request.getOrigin(),
                 request.getDestination(),
-                request.getCargoType(),
+                effectiveCargoType,
                 request.getPriority(),
                 Boolean.TRUE.equals(request.isFragile()),
                 Boolean.TRUE.equals(request.isPerishable())
@@ -48,7 +51,7 @@ public class RouteController {
         RouteResponse response = new RouteResponse();
         response.setOrigin(request.getOrigin());
         response.setDestination(request.getDestination());
-        response.setCargoType(request.getCargoType());
+        response.setCargoType(effectiveCargoType);
         response.setRouteInsight(routeInsight);
         response.setStatus("SUCCESS");
         response.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));

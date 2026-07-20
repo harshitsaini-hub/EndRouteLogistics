@@ -23,6 +23,10 @@ public class RouteRequest {
     @Schema(example = "electronics")
     private String cargoType;
 
+    @Size(max = 80, message = "Custom cargo type must be at most 80 characters")
+    @Schema(example = "handmade pottery", description = "Required when cargoType is 'Other'")
+    private String customCargoType;
+
     @NotBlank(message = "Priority is required")
     @Pattern(regexp = "^(FASTEST|CHEAPEST|BALANCED)$", message = "Priority must be FASTEST, CHEAPEST, or BALANCED")
     @Schema(example = "FASTEST")
@@ -46,6 +50,19 @@ public class RouteRequest {
 
     public String getCargoType() { return cargoType; }
     public void setCargoType(String cargoType) { this.cargoType = cargoType; }
+
+    public String getCustomCargoType() { return customCargoType; }
+    public void setCustomCargoType(String customCargoType) { this.customCargoType = customCargoType; }
+
+    /**
+     * Returns the effective cargo type — uses customCargoType when cargoType is "Other".
+     */
+    public String getEffectiveCargoType() {
+        if ("Other".equalsIgnoreCase(cargoType) && customCargoType != null && !customCargoType.trim().isEmpty()) {
+            return customCargoType.trim();
+        }
+        return cargoType;
+    }
 
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }

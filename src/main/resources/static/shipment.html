@@ -103,6 +103,14 @@
             </div>
           </div>
 
+          <div class="form-group form-group--full" id="customCargoGroup" style="display: none; margin-top: -1rem;">
+            <label class="form-label">
+              <span class="material-symbols-outlined label-icon">edit_note</span>
+              Describe Your Goods
+            </label>
+            <input class="form-input" id="customCargoType" placeholder="e.g. handmade pottery, lab equipment, art supplies" type="text" maxlength="80">
+          </div>
+
           <div class="form-group form-group--full form-row-toggles">
             <label class="toggle-label">
               <span class="toggle-text">Fragile goods?</span>
@@ -200,13 +208,26 @@
             e.stopPropagation();
             selectText.textContent = option.textContent;
             selectWrapper.dataset.value = option.dataset.value;
-            selectText.style.color = 'var(--color-on-surface)'; // Update color to indicate selection
+            selectText.style.color = 'var(--color-on-surface)';
             selectText.style.fontWeight = '600';
             selectWrapper.classList.remove('open');
             
             // Add active class to selected option
             options.forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
+
+            // Show/hide custom cargo input when "Other" is selected
+            if (selectWrapper.id === 'cargoType') {
+              const customGroup = document.getElementById('customCargoGroup');
+              const customInput = document.getElementById('customCargoType');
+              if (option.dataset.value === 'Other') {
+                customGroup.style.display = 'flex';
+                customInput.focus();
+              } else {
+                customGroup.style.display = 'none';
+                customInput.value = '';
+              }
+            }
           });
         });
       });
@@ -230,7 +251,9 @@
           const origin = document.getElementById('originPincode').value.trim();
           const dest = document.getElementById('destinationPincode').value.trim();
           const cargoWrapper = document.getElementById('cargoType');
-          const cargo = cargoWrapper ? cargoWrapper.dataset.value : '';
+          let cargo = cargoWrapper ? cargoWrapper.dataset.value : '';
+          const customCargoInput = document.getElementById('customCargoType');
+          const customCargo = customCargoInput ? customCargoInput.value.trim() : '';
           
           const priorityWrapper = document.getElementById('priorityType');
           const priority = priorityWrapper ? priorityWrapper.dataset.value : 'BALANCED';
@@ -241,11 +264,21 @@
             alert('Please fill in all fields (Pickup Location, Delivery Location, and Goods Type) before searching.');
             return;
           }
+
+          // Validate custom cargo type when "Other" is selected
+          if (cargo === 'Other' && !customCargo) {
+            alert('Please describe your goods type when selecting "Other".');
+            customCargoInput.focus();
+            return;
+          }
+
+          // Use custom cargo type text for the API request when "Other" is selected
+          const effectiveCargo = cargo === 'Other' ? customCargo : cargo;
           
           sessionStorage.setItem('erlResult', JSON.stringify({
             origin: origin,
             destination: dest,
-            cargoType: cargo,
+            cargoType: effectiveCargo,
             priority: priority,
             fragile: fragile,
             perishable: perishable
