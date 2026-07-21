@@ -11,6 +11,7 @@ public class RankedCarrier extends Carrier {
     private int confidenceScore;
     private String explanation;
     private List<String> aiReasons;
+    private JourneyTimeline timeline;
 
     public double getScore() { return score; }
     public void setScore(double score) { this.score = score; }
@@ -32,4 +33,7 @@ public class RankedCarrier extends Carrier {
 
     public List<String> getAiReasons() { return aiReasons; }
     public void setAiReasons(List<String> aiReasons) { this.aiReasons = aiReasons; }
+
+    public JourneyTimeline getTimeline() { return timeline; }
+    public void setTimeline(JourneyTimeline timeline) { this.timeline = timeline; }
 }

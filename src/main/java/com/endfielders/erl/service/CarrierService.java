@@ -1,7 +1,6 @@
 package com.endfielders.erl.service;
 
-import com.endfielders.erl.model.Carrier;
-import com.endfielders.erl.model.RankedCarrier;
+import com.endfielders.erl.model.*;
 import com.endfielders.erl.repository.CarrierRepository;
 import com.endfielders.erl.util.ScoringEngine;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,19 +8,36 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+/**
+ * Main business service for ranking carriers and generating AI insights.
+ * Implements Two-Phase Parallel Processing:
+ *   Phase 1: Initial scoring & Gemini route stop estimation in parallel.
+ *   Phase 2: Deduplicated batch weather forecast fetching & final AI enrichment in parallel.
+ */
 @Service
 public class CarrierService {
+
     private static final String DEFAULT_AI_INSIGHT = "AI suggests this carrier based on cost, speed, and reliability.";
     private static final String DEFAULT_CARGO_TYPE = "General goods";
 
     private final GeminiService geminiService;
+    private final WeatherService weatherService;
+    private final RouteEstimationService routeEstimationService;
     private final CarrierRepository carrierRepository;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public CarrierService(GeminiService geminiService, CarrierRepository carrierRepository) {
+    private volatile String cachedRouteInsight;
+
+    public CarrierService(GeminiService geminiService,
+                          WeatherService weatherService,
+                          RouteEstimationService routeEstimationService,
+                          CarrierRepository carrierRepository) {
         this.geminiService = geminiService;
+        this.weatherService = weatherService;
+        this.routeEstimationService = routeEstimationService;
         this.carrierRepository = carrierRepository;
     }
 
@@ -31,27 +47,65 @@ public class CarrierService {
 
         String safeCargoType = (cargoType == null || cargoType.trim().isEmpty()) ? DEFAULT_CARGO_TYPE : cargoType.trim();
         String cargo = safeCargoType.toLowerCase();
-        
+
         boolean fragileCargo = cargo.contains("glass") || cargo.contains("electronics") || fragile;
         boolean perishableCargo = cargo.contains("food") || cargo.contains("fish") || cargo.contains("meat") || perishable;
 
-        // Fetch weather ONCE and cache it
-        String weatherSummary = geminiService.buildWeatherSummary(origin, destination);
-
         List<Carrier> carriers = carrierRepository.findByActiveStatusTrue();
+
+        // -------------------------------------------------------------
+        // PHASE 1: Parallel Route Estimation & Weather Summary Fetch
+        // -------------------------------------------------------------
+
+        // 1. Fetch basic weather summary in parallel (for route insight prompt)
+        CompletableFuture<String> weatherSummaryFuture = CompletableFuture.supplyAsync(() ->
+                weatherService.buildWeatherSummary(origin, destination)
+        );
+
+        // 2. Estimate route stops for ALL carriers in parallel
+        Map<Long, CompletableFuture<List<RouteStop>>> stopFuturesMap = new HashMap<>();
+        for (Carrier c : carriers) {
+            stopFuturesMap.put(c.getId(), CompletableFuture.supplyAsync(() ->
+                    routeEstimationService.estimateRouteStops(origin, destination, c.getMode(), c.getEstimatedDays())
+            ));
+        }
+
+        // Wait for all route estimations to complete
+        CompletableFuture.allOf(stopFuturesMap.values().toArray(new CompletableFuture[0])).join();
+        String weatherSummary = weatherSummaryFuture.join();
+
+        // Collect estimated stops per carrier
+        Map<Long, List<RouteStop>> carrierStopsMap = new HashMap<>();
+        for (Map.Entry<Long, CompletableFuture<List<RouteStop>>> entry : stopFuturesMap.entrySet()) {
+            carrierStopsMap.put(entry.getKey(), entry.getValue().join());
+        }
+
+        // -------------------------------------------------------------
+        // PHASE 2: Deduplicated Weather Forecast Fetch & Timeline Attachment
+        // -------------------------------------------------------------
+        Map<String, DayWeather> sharedDedupCache = new ConcurrentHashMap<>();
         List<RankedCarrier> rankedList = new ArrayList<>();
 
         for (Carrier c : carriers) {
             RankedCarrier rc = new RankedCarrier();
+            rc.setId(c.getId());
             rc.setName(c.getName());
             rc.setMode(c.getMode());
             rc.setEstimatedDays(c.getEstimatedDays());
             rc.setCostPerKg(c.getCostPerKg());
             rc.setWebsite(c.getWebsite());
+            rc.setReliabilityScore(c.getReliabilityScore());
+            rc.setActiveStatus(c.isActiveStatus());
 
-            double score = ScoringEngine.calculateScore(
-                    c, safeCargoType, priority, fragileCargo, perishableCargo, weatherSummary);
-            
+            // Fetch deduplicated weather forecasts for this carrier's route
+            List<RouteStop> stops = carrierStopsMap.get(c.getId());
+            List<DayWeather> dayWeathers = weatherService.batchFetchForecasts(stops, sharedDedupCache);
+            rc.setTimeline(new JourneyTimeline(dayWeathers));
+
+            // Score carrier taking into account full forecast timeline
+            double score = ScoringEngine.calculateScoreWithTimeline(
+                    c, safeCargoType, priority, fragileCargo, perishableCargo, dayWeathers);
+
             boolean isLocal = origin != null && destination != null && origin.equals(destination);
             if (isLocal) {
                 if (c.getMode().equalsIgnoreCase("Road")) {
@@ -61,37 +115,43 @@ public class CarrierService {
                     score -= 50;
                 }
             }
-            
+
             score = Math.max(0, Math.min(100, score));
             rc.setScore(score);
             rc.setRiskScore((int) Math.max(0, 100 - score));
             rc.setGrade(ScoringEngine.assignGrade(score));
-            
+
             rc.setAiInsight(DEFAULT_AI_INSIGHT);
             rc.setAiReasons(Arrays.asList("Balanced performance", "Reliable delivery", "Standard pricing"));
             rc.setExplanation("Ranked based on optimal balance of cost, delivery speed, and risk factors.");
-            
+
             int confidence = calculateConfidence(rc.getScore(), rc.getRiskScore(), weatherSummary, rc);
             rc.setConfidenceScore(confidence);
 
             rankedList.add(rc);
         }
 
+        // Sort carriers by final calculated score (descending)
         rankedList.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
 
-        // Run BOTH Gemini calls in PARALLEL using the cached weather
+        // -------------------------------------------------------------
+        // PHASE 3: Parallel AI Insights & Carrier Analysis Generation
+        // -------------------------------------------------------------
+
+        // 1. Generate Overall Route Insight
         CompletableFuture<String> routeInsightFuture = CompletableFuture.supplyAsync(() ->
-            geminiService.analyzeRouteWithWeather(origin, destination, safeCargoType, weatherSummary)
+                geminiService.analyzeRouteWithWeather(origin, destination, safeCargoType, weatherSummary)
         );
 
-        CompletableFuture<Void> carrierInsightFuture = CompletableFuture.runAsync(() -> {
-            for (int i = 0; i < Math.min(1, rankedList.size()); i++) {
-                RankedCarrier rc = rankedList.get(i);
+        // 2. Generate Top Carrier Detailed AI Insight
+        CompletableFuture<Void> topCarrierInsightFuture = CompletableFuture.runAsync(() -> {
+            if (!rankedList.isEmpty()) {
+                RankedCarrier rc = rankedList.get(0);
                 String safeWeather = (weatherSummary == null) ? "clear" : weatherSummary;
 
                 String prompt = """
                 You are a logistics AI.
-                Your task is to analyze ONE carrier and return a JSON response.
+                Your task is to analyze ONE top carrier and return a JSON response.
                 IMPORTANT RULES:
                 - Return ONLY JSON
                 - No markdown
@@ -138,17 +198,11 @@ public class CarrierService {
             }
         });
 
-        // Wait for both to complete
-        CompletableFuture.allOf(routeInsightFuture, carrierInsightFuture).join();
-
-        // Store the route insight on the first carrier (or it can be retrieved separately)
+        CompletableFuture.allOf(routeInsightFuture, topCarrierInsightFuture).join();
         cachedRouteInsight = routeInsightFuture.join();
 
         return rankedList;
     }
-
-    // Cached route insight from the last analysis (avoids re-calling from controller)
-    private volatile String cachedRouteInsight;
 
     public String getLastRouteInsight() {
         return cachedRouteInsight;
