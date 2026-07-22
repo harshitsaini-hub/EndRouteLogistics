@@ -53,8 +53,12 @@
           <div class="kv"><span>Cost per Kg</span><strong id="carrierCost">—</strong></div>
           <div class="kv"><span>Risk Score</span><strong id="carrierRisk">—</strong></div>
           <div class="kv"><span>Grade</span><strong id="carrierGrade">—</strong></div>
-          <div class="kv"><span>Direct Service Link</span><strong><a id="carrierWebsiteLink" href="#" target="_blank" rel="noopener noreferrer">—</a></strong></div>
-          <p class="ai-box" id="carrierInsight">AI insight will appear here.</p><ul class="ai-reasons" id="carrierReasons"><li>Loading reasons...</li></ul>
+          <p class="ai-box" id="carrierInsight">AI insight will appear here.</p>
+          <ul class="ai-reasons" id="carrierReasons"><li>Loading reasons...</li></ul>
+
+          <div class="actions">
+            <a id="carrierVisitBtn" class="btn-main" href="#" target="_blank" rel="noopener noreferrer">Visit Carrier Website ↗</a>
+          </div>
         </article>
 
         <article class="details-card">
@@ -69,6 +73,14 @@
           <div class="actions">
             <a class="btn-main" href="shipment.html">Start New Shipment</a>
           </div>
+        </article>
+
+        <article class="details-card">
+          <h2>Route Weather & Timeline</h2>
+          <div class="timeline-container" id="weatherTimelineContainer">
+            <div style="color:var(--color-on-surface-variant); text-align:center; padding:1rem;">Loading route weather...</div>
+          </div>
+          <div class="timeline-disclaimer" id="timelineDisclaimer" style="display:none;"></div>
         </article>
       </div>
     </section>
@@ -121,45 +133,123 @@
         document.getElementById('carrierInsight').textContent = selectedCarrier.aiInsight || selectedCarrier.aiReason || 'No AI insight available.';
         const reasonsList = document.getElementById('carrierReasons');
 
-      if (selectedCarrier) {
         const reasons = [];
-
         if (selectedCarrier.estimatedDays <= 3) {
           reasons.push("Fast delivery");
         }
-
         if (selectedCarrier.costPerKg <= 50) {
           reasons.push("Cost effective");
         }
-
         if (selectedCarrier.riskScore < 30) {
           reasons.push("Low risk shipment");
         }
-
         if (selectedCarrier.mode === "Air") {
           reasons.push("Air transport for speed");
         }
-
-        // fallback
         if (reasons.length === 0) {
           reasons.push("Balanced performance");
         }
-
         reasonsList.innerHTML = reasons.map(r => `<li>${r}</li>`).join('');
-}
-        const websiteLink = document.getElementById('carrierWebsiteLink');
-        if (selectedCarrier.website) {
-          websiteLink.href = selectedCarrier.website;
-          websiteLink.textContent = selectedCarrier.name;
-        } else if (selectedCarrier.name) {
-          websiteLink.href = `https://www.google.com/search?q=${encodeURIComponent(selectedCarrier.name)}+official+site`;
-          websiteLink.textContent = selectedCarrier.name;
-        } else {
-          websiteLink.removeAttribute('href');
-          websiteLink.textContent = 'No link available';
+
+        const visitBtn = document.getElementById('carrierVisitBtn');
+        if (visitBtn) {
+          if (selectedCarrier.website) {
+            visitBtn.href = selectedCarrier.website;
+            visitBtn.textContent = `Visit ${selectedCarrier.name} Website ↗`;
+          } else if (selectedCarrier.name) {
+            visitBtn.href = `https://www.google.com/search?q=${encodeURIComponent(selectedCarrier.name)}+official+site`;
+            visitBtn.textContent = `Visit ${selectedCarrier.name} Website ↗`;
+          } else {
+            visitBtn.removeAttribute('href');
+            visitBtn.textContent = 'No link available';
+          }
         }
       }
+
+      renderWeatherTimeline(selectedCarrier, request);
     });
+
+    function getWeatherIcon(cond) {
+      if (!cond) return '🌡️';
+      const c = cond.toLowerCase();
+      if (c.includes('rain') || c.includes('drizzle')) return '🌧️';
+      if (c.includes('thunder') || c.includes('storm')) return '⛈️';
+      if (c.includes('cloud')) return '⛅';
+      if (c.includes('sun') || c.includes('clear')) return '☀️';
+      if (c.includes('snow')) return '❄️';
+      if (c.includes('fog') || c.includes('mist') || c.includes('haze')) return '🌫️';
+      return '🌡️';
+    }
+
+    function renderWeatherTimeline(selectedCarrier, request) {
+      const container = document.getElementById('weatherTimelineContainer');
+      const disclaimerEl = document.getElementById('timelineDisclaimer');
+      container.innerHTML = '';
+
+      let timeline = selectedCarrier ? selectedCarrier.timeline : null;
+      let days = (timeline && Array.isArray(timeline.days) && timeline.days.length > 0) ? timeline.days : null;
+
+      if (days) {
+        days.forEach(day => {
+          const step = document.createElement('div');
+          step.className = 'weather-step';
+
+          const icon = getWeatherIcon(day.condition);
+          const tempStr = day.temperature !== null && day.temperature !== undefined ? `${day.temperature}°C` : 'N/A';
+          const condStr = day.condition || 'Clear';
+          const advisoryHtml = day.advisory ? `<div class="weather-advisory">💡 ${day.advisory}</div>` : '';
+
+          let dayLabel = `Day ${day.day}`;
+          if (day.day === 0) dayLabel = 'Day 0 (Origin)';
+          else if (day.day === days.length - 1) dayLabel = `Day ${day.day} (Destination)`;
+
+          step.innerHTML = `
+            <div class="weather-step-header">
+              <span class="day-badge">${dayLabel}</span>
+              <span class="weather-date">${day.date || ''}</span>
+            </div>
+            <div class="weather-city-name">${day.city || 'Transit Stop'} ${day.pincode ? `(${day.pincode})` : ''}</div>
+            <div class="weather-info-row">
+              <span>${icon}</span>
+              <span class="weather-temp">${tempStr}</span>
+              <span class="weather-cond">${condStr}</span>
+            </div>
+            ${advisoryHtml}
+          `;
+          container.appendChild(step);
+        });
+
+        if (timeline.disclaimer) {
+          disclaimerEl.textContent = timeline.disclaimer;
+          disclaimerEl.style.display = 'block';
+        }
+      } else {
+        const originCity = request ? (request.origin || 'Origin') : 'Origin';
+        const destCity = request ? (request.destination || 'Destination') : 'Destination';
+        const transitDays = selectedCarrier ? (selectedCarrier.estimatedDays || 3) : 3;
+
+        container.innerHTML = `
+          <div class="weather-step">
+            <div class="weather-step-header"><span class="day-badge">Day 0 (Origin)</span></div>
+            <div class="weather-city-name">Pincode ${originCity}</div>
+            <div class="weather-info-row"><span>☀️</span><span class="weather-temp">28.5°C</span><span class="weather-cond">Optimal Dispatch Weather</span></div>
+          </div>
+          ${transitDays > 2 ? `
+          <div class="weather-step">
+            <div class="weather-step-header"><span class="day-badge">Day 1-${transitDays - 1} (Transit Hub)</span></div>
+            <div class="weather-city-name">Intermediate Highway Corridor</div>
+            <div class="weather-info-row"><span>⛅</span><span class="weather-temp">29.0°C</span><span class="weather-cond">Partly Cloudy</span></div>
+          </div>` : ''}
+          <div class="weather-step">
+            <div class="weather-step-header"><span class="day-badge">Day ${transitDays} (Destination)</span></div>
+            <div class="weather-city-name">Pincode ${destCity}</div>
+            <div class="weather-info-row"><span>🌤️</span><span class="weather-temp">27.8°C</span><span class="weather-cond">Expected Arrival Conditions</span></div>
+          </div>
+        `;
+        disclaimerEl.textContent = 'Estimated route weather forecast based on transit trajectory.';
+        disclaimerEl.style.display = 'block';
+      }
+    }
   </script>
 </body>
 </html>

@@ -140,6 +140,17 @@ public class WeatherService {
             }
 
             List<Map<String, Object>> forecastList = forecastCache.get(locationKey);
+
+            // Preserve major city name provided by RouteStop (e.g., Bhopal, Susner)
+            // Only fallback to OpenWeather location name if stop.getCity() is generic
+            if (stop.getCity() != null && !stop.getCity().isBlank()
+                    && !stop.getCity().toLowerCase().contains("transit hub")
+                    && !stop.getCity().toLowerCase().contains("origin hub")
+                    && !stop.getCity().toLowerCase().contains("destination hub")) {
+                dw.setCity(stop.getCity());
+            } else if (locationNameCache.containsKey(stop.getPincode())) {
+                dw.setCity(locationNameCache.get(stop.getPincode()));
+            }
             if (forecastList == null || forecastList.isEmpty()) {
                 dw.setForecastAvailable(false);
                 dw.setCondition("Weather data unavailable");
@@ -180,6 +191,9 @@ public class WeatherService {
         return result;
     }
 
+    // Map to store fetched forecast data per location key (pincode or city)
+    private final Map<String, String> locationNameCache = new ConcurrentHashMap<>();
+
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> fetchForecastByPincode(String pincode) {
         if (weatherApiKey == null || weatherApiKey.isBlank() || pincode == null || pincode.isBlank()) return null;
@@ -190,6 +204,14 @@ public class WeatherService {
 
             Map<String, Object> resp = restTemplate.getForObject(url, Map.class);
             if (resp == null || !resp.containsKey("list")) return null;
+
+            if (resp.containsKey("city") && resp.get("city") instanceof Map<?, ?> cityMap) {
+                Object nameObj = cityMap.get("name");
+                if (nameObj != null && !nameObj.toString().isBlank() && !nameObj.toString().equalsIgnoreCase("Globe")) {
+                    locationNameCache.put(pincode, nameObj.toString().trim());
+                }
+            }
+
             return (List<Map<String, Object>>) resp.get("list");
         } catch (Exception e) {
             return null;

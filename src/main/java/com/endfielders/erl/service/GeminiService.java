@@ -7,6 +7,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class GeminiService {
@@ -17,6 +18,7 @@ public class GeminiService {
     private String geminiApiKey;
 
     private final RestTemplate restTemplate = createRestTemplate();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private RestTemplate createRestTemplate() {
         org.springframework.http.client.SimpleClientHttpRequestFactory factory =
@@ -101,6 +103,85 @@ public class GeminiService {
             }
         }
         return null;
+    }
+
+    /**
+     * Ask Gemini to rate the suitability of a cargo type for Air, Road, and Rail modes.
+     * Returns a map with scores from 1-100.
+     */
+    public Map<String, Integer> getCargoModeSuitability(String cargoType) {
+        String safeCargoType = (cargoType == null || cargoType.isBlank()) ? GENERAL_GOODS : cargoType.trim();
+        
+        String prompt = """
+        You are a logistics engine. Rate how suitable "%s" is for different transport modes.
+        IMPORTANT RULES:
+        - Return ONLY valid JSON, no markdown, no explanation.
+        - The keys must be EXACTLY "Air", "Road", and "Rail".
+        - The values must be integers from 1 to 100 representing suitability.
+        Example: {"Air": 20, "Road": 80, "Rail": 90}
+        """.formatted(safeCargoType);
+
+        String response = callGemini(prompt);
+        Map<String, Integer> defaultScores = Map.of("Air", 65, "Road", 65, "Rail", 65);
+        
+        if (response == null || response.isBlank()) {
+            return defaultScores;
+        }
+
+        try {
+            String cleanJson = response.replace("```json", "").replace("```", "").trim();
+            int start = cleanJson.indexOf("{");
+            int end = cleanJson.lastIndexOf("}");
+            if (start != -1 && end != -1) {
+                cleanJson = cleanJson.substring(start, end + 1);
+            }
+            
+            Map<String, Integer> map = mapper.readValue(cleanJson, mapper.getTypeFactory().constructMapType(Map.class, String.class, Integer.class));
+            return map.isEmpty() ? defaultScores : map;
+        } catch (Exception e) {
+            System.out.println("[WARN] Failed to parse cargo suitability JSON: " + response);
+            return defaultScores;
+        }
+    }
+
+    /**
+     * Ask Gemini to classify a custom cargo type into one of the logistics categories.
+     * Returns one of: B2B_FREIGHT, E_COMMERCE, HOUSEHOLD, COLD_CHAIN, or GENERAL.
+     */
+    public String resolveCargoCategory(String cargoType) {
+        String safeCargoType = (cargoType == null || cargoType.isBlank()) ? GENERAL_GOODS : cargoType.trim();
+
+        String prompt = """
+        You are a logistics classification engine.
+        Classify the following cargo type into EXACTLY ONE of these categories:
+        - B2B_FREIGHT (heavy industrial, wholesale, raw materials, bulk commercial goods)
+        - E_COMMERCE (electronics, retail parcels, documents, clothing, gadgets, small items)
+        - HOUSEHOLD (furniture, home appliances, personal belongings, home relocation)
+        - COLD_CHAIN (food, pharma, perishable, frozen, dairy, chemicals, medical supplies)
+        - GENERAL (if none of the above fit)
+
+        RULES:
+        - Return ONLY the category name, nothing else.
+        - No explanation, no punctuation, no quotes.
+
+        Cargo: "%s"
+        """.formatted(safeCargoType);
+
+        String response = callGemini(prompt);
+
+        if (response == null || response.isBlank()) {
+            return "GENERAL";
+        }
+
+        String cleaned = response.trim().toUpperCase().replace(" ", "_");
+
+        // Validate it's one of our known categories
+        if (Set.of("B2B_FREIGHT", "E_COMMERCE", "HOUSEHOLD", "COLD_CHAIN", "GENERAL").contains(cleaned)) {
+            return cleaned;
+        }
+
+        System.out.println("[WARN] Gemini returned unknown category: " + response + ", falling back to GENERAL");
+        return "GENERAL";
     }
 
     private String generateFallbackInsight(String origin, String destination, String cargoType) {

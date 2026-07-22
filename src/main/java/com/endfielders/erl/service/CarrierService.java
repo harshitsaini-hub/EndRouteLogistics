@@ -2,6 +2,7 @@ package com.endfielders.erl.service;
 
 import com.endfielders.erl.model.*;
 import com.endfielders.erl.repository.CarrierRepository;
+import com.endfielders.erl.util.CategoryResolver;
 import com.endfielders.erl.util.ScoringEngine;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -13,9 +14,10 @@ import java.util.stream.Collectors;
 
 /**
  * Main business service for ranking carriers and generating AI insights.
- * Implements Two-Phase Parallel Processing:
- *   Phase 1: Initial scoring & Gemini route stop estimation in parallel.
- *   Phase 2: Deduplicated batch weather forecast fetching & final AI enrichment in parallel.
+ * Implements Category-Aware Two-Phase Parallel Processing:
+ *   Phase 0: Resolve cargo type → carrier category (instant or AI-based).
+ *   Phase 1: Parallel route stop estimation & weather summary fetch.
+ *   Phase 2: Deduplicated batch weather forecast & final AI enrichment.
  */
 @Service
 public class CarrierService {
@@ -51,7 +53,27 @@ public class CarrierService {
         boolean fragileCargo = cargo.contains("glass") || cargo.contains("electronics") || fragile;
         boolean perishableCargo = cargo.contains("food") || cargo.contains("fish") || cargo.contains("meat") || perishable;
 
-        List<Carrier> carriers = carrierRepository.findByActiveStatusTrue();
+        // -------------------------------------------------------------
+        // PHASE 0: Resolve cargo type → carrier category
+        // -------------------------------------------------------------
+        String resolvedCategory = CategoryResolver.resolve(safeCargoType);
+        if (resolvedCategory == null) {
+            // Unknown/custom cargo — ask Gemini to classify it
+            resolvedCategory = geminiService.resolveCargoCategory(safeCargoType);
+            System.out.println("[INFO] AI resolved '" + safeCargoType + "' → " + resolvedCategory);
+        } else {
+            System.out.println("[INFO] Direct resolved '" + safeCargoType + "' → " + resolvedCategory);
+        }
+
+        // Fetch carriers for the resolved category + GENERAL all-rounders
+        List<String> categories = new ArrayList<>();
+        categories.add(resolvedCategory);
+        if (!"GENERAL".equals(resolvedCategory)) {
+            categories.add("GENERAL");
+        }
+        List<Carrier> carriers = carrierRepository.findByCategoryInAndActiveStatusTrue(categories);
+
+        System.out.println("[INFO] Fetched " + carriers.size() + " carriers for categories: " + categories);
 
         // -------------------------------------------------------------
         // PHASE 1: Parallel Route Estimation & Weather Summary Fetch
@@ -60,6 +82,11 @@ public class CarrierService {
         // 1. Fetch basic weather summary in parallel (for route insight prompt)
         CompletableFuture<String> weatherSummaryFuture = CompletableFuture.supplyAsync(() ->
                 weatherService.buildWeatherSummary(origin, destination)
+        );
+
+        // 1b. Fetch AI cargo suitability mapping in parallel
+        CompletableFuture<Map<String, Integer>> cargoSuitabilityFuture = CompletableFuture.supplyAsync(() ->
+                geminiService.getCargoModeSuitability(safeCargoType)
         );
 
         // 2. Estimate route stops for ALL carriers in parallel
@@ -73,6 +100,7 @@ public class CarrierService {
         // Wait for all route estimations to complete
         CompletableFuture.allOf(stopFuturesMap.values().toArray(new CompletableFuture[0])).join();
         String weatherSummary = weatherSummaryFuture.join();
+        Map<String, Integer> cargoSuitability = cargoSuitabilityFuture.join();
 
         // Collect estimated stops per carrier
         Map<Long, List<RouteStop>> carrierStopsMap = new HashMap<>();
@@ -85,6 +113,16 @@ public class CarrierService {
         // -------------------------------------------------------------
         Map<String, DayWeather> sharedDedupCache = new ConcurrentHashMap<>();
         List<RankedCarrier> rankedList = new ArrayList<>();
+
+        // Calculate averages for benchmarking
+        double totalCost = 0;
+        double totalSpeed = 0;
+        for (Carrier c : carriers) {
+            totalCost += c.getCostPerKg();
+            totalSpeed += c.getEstimatedDays();
+        }
+        double avgCost = carriers.isEmpty() ? 50 : totalCost / carriers.size();
+        double avgSpeed = carriers.isEmpty() ? 4 : totalSpeed / carriers.size();
 
         for (Carrier c : carriers) {
             RankedCarrier rc = new RankedCarrier();
@@ -104,7 +142,7 @@ public class CarrierService {
 
             // Score carrier taking into account full forecast timeline
             double score = ScoringEngine.calculateScoreWithTimeline(
-                    c, safeCargoType, priority, fragileCargo, perishableCargo, dayWeathers);
+                    c, safeCargoType, priority, fragileCargo, perishableCargo, dayWeathers, avgCost, avgSpeed, cargoSuitability);
 
             boolean isLocal = origin != null && destination != null && origin.equals(destination);
             if (isLocal) {

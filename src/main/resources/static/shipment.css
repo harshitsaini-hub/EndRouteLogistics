@@ -2,56 +2,56 @@
    CSS Custom Properties (Design Tokens)
    ============================================================ */
 :root {
-  --color-primary:                #CD1C18;
-  --color-primary-container:      #9B1313;
-  --color-primary-fixed:          #CD1C18;
-  --color-primary-fixed-dim:      #9B1313;
-  --color-on-primary:             #FFA896;
-  --color-on-primary-container:   #FFA896;
-  --color-on-primary-fixed:       #FFA896;
-  --color-inverse-primary:        #CD1C18;
+  --color-primary:                #2563EB;
+  --color-primary-container:      #1D4ED8;
+  --color-primary-fixed:          #3B82F6;
+  --color-primary-fixed-dim:      #1D4ED8;
+  --color-on-primary:             #FFFFFF;
+  --color-on-primary-container:   #DBEAFE;
+  --color-on-primary-fixed:       #FFFFFF;
+  --color-inverse-primary:        #2563EB;
 
-  --color-secondary:              #9B1313;
-  --color-secondary-container:    #FFA896;
-  --color-secondary-fixed:        #9B1313;
-  --color-secondary-fixed-dim:    #9B1313;
-  --color-on-secondary:           #FFA896;
-  --color-on-secondary-container: #38000A;
-  --color-on-secondary-fixed:     #FFA896;
+  --color-secondary:              #0284C7;
+  --color-secondary-container:    #E0F2FE;
+  --color-secondary-fixed:        #0284C7;
+  --color-secondary-fixed-dim:    #0369A1;
+  --color-on-secondary:           #FFFFFF;
+  --color-on-secondary-container: #0F172A;
+  --color-on-secondary-fixed:     #E0F2FE;
 
-  --color-tertiary:               #38000A;
-  --color-tertiary-container:     #9B1313;
-  --color-tertiary-fixed:         #38000A;
-  --color-tertiary-fixed-dim:     #38000A;
-  --color-on-tertiary:            #FFA896;
-  --color-on-tertiary-container:  #FFA896;
-  --color-on-tertiary-fixed:      #FFA896;
+  --color-tertiary:               #0F172A;
+  --color-tertiary-container:     #1E293B;
+  --color-tertiary-fixed:         #0F172A;
+  --color-tertiary-fixed-dim:     #0F172A;
+  --color-on-tertiary:            #F8FAFC;
+  --color-on-tertiary-container:  #F8FAFC;
+  --color-on-tertiary-fixed:      #F8FAFC;
 
-  --color-surface:                #FFA896;
-  --color-surface-dim:            #EB9382;
-  --color-surface-bright:         #FFA896;
-  --color-surface-variant:        #F59D8C;
-  --color-surface-tint:           #CD1C18;
-  --color-surface-container:      #F59D8C;
-  --color-surface-container-low:  #FFA896;
-  --color-surface-container-high: #EB9382;
-  --color-surface-container-highest: #E08978;
+  --color-surface:                #F8FAFC;
+  --color-surface-dim:            #F1F5F9;
+  --color-surface-bright:         #FFFFFF;
+  --color-surface-variant:        #E2E8F0;
+  --color-surface-tint:           #2563EB;
+  --color-surface-container:      #FFFFFF;
+  --color-surface-container-low:  #F8FAFC;
+  --color-surface-container-high: #F1F5F9;
+  --color-surface-container-highest: #E2E8F0;
   --color-surface-container-lowest:  #FFFFFF;
-  --color-on-surface:             #38000A;
-  --color-on-surface-variant:     #9B1313;
-  --color-inverse-surface:        #38000A;
-  --color-inverse-on-surface:     #FFA896;
+  --color-on-surface:             #0F172A;
+  --color-on-surface-variant:     #475569;
+  --color-inverse-surface:        #0F172A;
+  --color-inverse-on-surface:     #F8FAFC;
 
-  --color-background:             #FFA896;
-  --color-on-background:          #38000A;
+  --color-background:             #0F172A;
+  --color-on-background:          #F8FAFC;
 
-  --color-outline:                #9B1313;
-  --color-outline-variant:        #CD1C18;
+  --color-outline:                #CBD5E1;
+  --color-outline-variant:        #94A3B8;
 
-  --color-error:                  #ba1a1a;
-  --color-error-container:        #ffdad6;
+  --color-error:                  #dc2626;
+  --color-error-container:        #fee2e2;
   --color-on-error:               #ffffff;
-  --color-on-error-container:     #93000a;
+  --color-on-error-container:     #991b1b;
 
   --font-headline: 'Manrope', sans-serif;
   --font-body:     'Inter', sans-serif;
@@ -258,8 +258,9 @@ button {
   z-index: 10;
   background: linear-gradient(
     to bottom right,
-    rgba(56, 0, 10, 0.10),
-    var(--color-background)
+    rgba(15, 23, 42, 0.70),
+    rgba(37, 99, 235, 0.20),
+    var(--color-surface)
   );
 }
 

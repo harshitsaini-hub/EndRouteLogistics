@@ -12,4 +12,6 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
     List<Carrier> findByActiveStatusTrue();
 
     List<Carrier> findByModeAndActiveStatusTrue(String mode);
+
+    List<Carrier> findByCategoryInAndActiveStatusTrue(List<String> categories);
 }

@@ -25,6 +25,9 @@ public class Carrier {
     private String website;
 
     @Column(nullable = false)
+    private String category = "GENERAL";
+
+    @Column(nullable = false)
     private double reliabilityScore = 75.0;
 
     @Column(nullable = false)
@@ -49,6 +52,9 @@ public class Carrier {
 
     public String getWebsite() { return website; }
     public void setWebsite(String website) { this.website = website; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     public double getReliabilityScore() { return reliabilityScore; }
     public void setReliabilityScore(double reliabilityScore) { this.reliabilityScore = reliabilityScore; }

@@ -4,6 +4,7 @@ import com.endfielders.erl.model.Carrier;
 import com.endfielders.erl.model.DayWeather;
 
 import java.util.List;
+import java.util.Map;
 
 public class ScoringEngine {
 
@@ -47,31 +48,45 @@ public class ScoringEngine {
                                                     String priority,
                                                     boolean fragile,
                                                     boolean perishable,
-                                                    List<DayWeather> timeline) {
+                                                    List<DayWeather> timeline,
+                                                    double avgCost,
+                                                    double avgSpeed,
+                                                    Map<String, Integer> cargoSuitability) {
 
-        double costScore = normalizeInverse(c.getCostPerKg(), 20, 120);
-        double speedScore = normalizeInverse(c.getEstimatedDays(), 2, 7);
-        double modeScore = getModeScore(c, cargoType);
+        double costScore = normalizeRelative(c.getCostPerKg(), avgCost);
+        double speedScore = normalizeRelative(c.getEstimatedDays(), avgSpeed);
+        double modeScore = cargoSuitability != null ? cargoSuitability.getOrDefault(c.getMode(), 65) : 65;
+        double reliabilityScore = c.getReliabilityScore();
 
         double riskPenalty = calculateTimelineRiskPenalty(c, fragile, perishable, timeline);
 
-        double costWeight = 0.4;
-        double speedWeight = 0.4;
+        double costWeight = 0.3;
+        double speedWeight = 0.3;
+        double reliabilityWeight = 0.2;
+        double modeWeight = 0.2;
 
         if ("FASTEST".equalsIgnoreCase(priority)) {
-            speedWeight = 0.6;
-            costWeight = 0.2;
+            speedWeight = 0.5;
+            costWeight = 0.1;
         } else if ("CHEAPEST".equalsIgnoreCase(priority)) {
-            costWeight = 0.6;
-            speedWeight = 0.2;
+            costWeight = 0.5;
+            speedWeight = 0.1;
         }
 
         double finalScore = (costScore * costWeight)
                 + (speedScore * speedWeight)
-                + (modeScore * 0.2)
+                + (reliabilityScore * reliabilityWeight)
+                + (modeScore * modeWeight)
                 - riskPenalty;
 
         return Math.max(0, Math.round(finalScore * 100.0) / 100.0);
+    }
+
+    private static double normalizeRelative(double value, double average) {
+        if (average == 0) return 50;
+        double ratio = value / average;
+        double score = 100 - ((ratio - 0.5) * 50);
+        return Math.max(0, Math.min(100, score));
     }
 
     private static double normalizeInverse(double value, double min, double max) {

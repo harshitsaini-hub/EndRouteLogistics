@@ -19,9 +19,6 @@
         <a href="shipment.html" class="active">Track</a>
         <a href="mailto:support@endroutelogistics.com">Contact</a>
       </div>
-      <div class="nav-actions">
-        <button class="btn-signin">Sign In</button>
-      </div>
     </nav>
   </header>
 
@@ -90,14 +87,14 @@
                 <span class="material-symbols-outlined select-arrow">keyboard_arrow_down</span>
               </div>
               <div class="custom-options-container">
-                <div class="custom-option" data-value="Clothing">Clothing</div>
-                <div class="custom-option" data-value="Electronics">Electronics</div>
-                <div class="custom-option" data-value="Furniture">Furniture</div>
-                <div class="custom-option" data-value="Machinery">Machinery</div>
+                <div class="custom-option" data-value="Commercial B2B & Bulk Freight">Commercial B2B &amp; Bulk Freight (FTL / PTL)</div>
+                <div class="custom-option" data-value="E-Commerce & Retail Small Parcels">E-Commerce &amp; Retail Small Parcels (B2C / D2C)</div>
+                <div class="custom-option" data-value="Household Shifting & Packers Movers">Household Shifting &amp; Packers Movers</div>
+                <div class="custom-option" data-value="Cold Chain, Exim & Special Cargo">Cold Chain, Exim &amp; Special Cargo</div>
+                <div class="custom-option" data-value="Electronics">Electronics &amp; Gadgets</div>
+                <div class="custom-option" data-value="Furniture">Furniture &amp; Home Relocation</div>
                 <div class="custom-option" data-value="Food & Perishables">Food &amp; Perishables</div>
-                <div class="custom-option" data-value="Chemicals">Chemicals</div>
-                <div class="custom-option" data-value="Vehicles">Vehicles</div>
-                <div class="custom-option" data-value="Raw Materials">Raw Materials</div>
+                <div class="custom-option" data-value="Machinery">Machinery &amp; Heavy Freight</div>
                 <div class="custom-option" data-value="Other">Other</div>
               </div>
             </div>
@@ -287,9 +284,23 @@
           const icon = searchBtn.querySelector('.material-symbols-outlined');
           if (icon) {
             const rect = icon.getBoundingClientRect();
-            const computedColor = window.getComputedStyle(icon).color;
             
-            // Create a clone to break out of overflow constraints
+            // 1. Create solid brand red expanding circle centered at the anchor icon
+            const circle = document.createElement('div');
+            circle.style.position = 'fixed';
+            circle.style.top = (rect.top + rect.height / 2) + 'px';
+            circle.style.left = (rect.left + rect.width / 2) + 'px';
+            circle.style.width = '10px';
+            circle.style.height = '10px';
+            circle.style.borderRadius = '50%';
+            circle.style.backgroundColor = '#2563EB';
+            circle.style.transform = 'translate(-50%, -50%) scale(1)';
+            circle.style.transition = 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1)';
+            circle.style.zIndex = '9998';
+            circle.style.pointerEvents = 'none';
+            document.body.appendChild(circle);
+
+            // 2. Create centered anchor icon clone
             const clone = icon.cloneNode(true);
             clone.style.position = 'fixed';
             clone.style.top = rect.top + 'px';
@@ -297,38 +308,45 @@
             clone.style.width = rect.width + 'px';
             clone.style.height = rect.height + 'px';
             clone.style.margin = '0';
-            clone.style.zIndex = '10000';
-            clone.style.color = computedColor;
+            clone.style.zIndex = '9999';
+            clone.style.color = '#FFFFFF';
             clone.style.display = 'flex';
             clone.style.alignItems = 'center';
             clone.style.justifyContent = 'center';
-            clone.style.transition = 'transform 1s cubic-bezier(0.86, 0, 0.07, 1)';
+            clone.style.transition = 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.85s ease';
             clone.style.transformOrigin = 'center center';
-            clone.style.pointerEvents = 'none'; // Prevent interaction during animation
-            
+            clone.style.pointerEvents = 'none';
             document.body.appendChild(clone);
-            
-            // Hide original
+
+            // Hide original icon
             icon.style.opacity = '0';
-            
+
             // Force reflow
+            void circle.offsetWidth;
             void clone.offsetWidth;
-            
-            // Animate to center and scale up massively
+
+            // Calculate max viewport distance to guarantee 100% full screen coverage
+            const maxRadius = Math.hypot(
+              Math.max(rect.left, window.innerWidth - rect.left),
+              Math.max(rect.top, window.innerHeight - rect.top)
+            );
+            const scaleFactor = (maxRadius * 2.5) / 10;
+
+            // Expand red circle to 100% full screen coverage
+            circle.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
+
+            // Center and scale anchor icon smoothly
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
             const moveX = centerX - (rect.left + rect.width / 2);
             const moveY = centerY - (rect.top + rect.height / 2);
-            
-            // Scale by 300 to ensure it covers the entire screen
-            clone.style.transform = `translate(${moveX}px, ${moveY}px) scale(300)`;
-            
-            // Wait for animation, then redirect
+            clone.style.transform = `translate(${moveX}px, ${moveY}px) scale(6) rotate(-360deg)`;
+
+            // Redirect smoothly once full 100% coverage is reached
             setTimeout(() => {
               window.location.href = 'results.html';
-            }, 1000);
+            }, 850);
           } else {
-            // Fallback if no icon
             window.location.href = 'results.html';
           }
         });

@@ -73,9 +73,14 @@
       <div class="ai-brief" id="aiBrief" style="display:none"></div>
 
       <!-- Loading -->
-      <div class="loading-state" id="loadingState" style="text-align: center; padding: 4rem 0;">
-        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--color-primary); animation: spin 1s linear infinite;">sync</span>
-        <div style="margin-top: 1rem; color: var(--color-primary); font-weight: 700;">Gemini is analyzing your route...</div>
+      <div class="loading-state" id="loadingState">
+        <div class="truck-road">
+          <div class="truck-container">
+            <span class="material-symbols-outlined truck-icon">local_shipping</span>
+          </div>
+          <div class="road-line"></div>
+        </div>
+        <div class="loading-text">Gemini is analyzing your route...</div>
       </div>
 
       <!-- Carriers grid -->
@@ -110,9 +115,9 @@
     loadCarriers();
   });
 
-  function modeImgPath(mode) {
-    const map = { Air: 'assets/air.png', Road: 'assets/road.png', Rail: 'assets/rail.png', Sea: 'assets/sea.png' };
-    return map[mode] || 'assets/road.png';
+  function getModeIcon(mode) {
+    const map = { Air: 'flight_takeoff', Road: 'local_shipping', Rail: 'train', Sea: 'directions_boat', Multi: 'hub' };
+    return map[mode] || 'local_shipping';
   }
 
   async function loadCarriers() {
@@ -245,8 +250,9 @@
     aiBrief.style.display = 'block';
 
     document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('sumCount').textContent = carriers.length + ' carriers';
-    carriers.forEach((carrier, index) => {
+    const displayCarriers = carriers.slice(0, 10);
+    document.getElementById('sumCount').textContent = displayCarriers.length + ' carriers';
+    displayCarriers.forEach((carrier, index) => {
       const rank = index + 1;
 
       const card = document.createElement('div');
@@ -256,7 +262,7 @@
         <div class="rank-badge">#${rank}</div>
 
         <div class="mode-img-wrapper">
-          <img src="${modeImgPath(carrier.mode)}" class="mode-img">
+          <span class="material-symbols-outlined mode-icon">${getModeIcon(carrier.mode)}</span>
         </div>
 
         <div class="card-center">
@@ -289,9 +295,6 @@
           <div class="ai-reason">"${carrier.aiInsight || carrier.aiReason || routeInsight || 'No AI insight available.'}"</div>
 
           <div style="display:flex; gap:0.6rem; justify-content:flex-end; flex-wrap:wrap;">
-            <button class="btn-select" onclick="openCarrierWebsite('${encodeURIComponent(carrier.website || '')}')">
-              Visit Service
-            </button>
             <button class="btn-select" onclick="selectCarrier('${encodeURIComponent(JSON.stringify(carrier))}')">
               Select Route
             </button>
@@ -330,12 +333,12 @@
   }
 
 function resolveApiUrl() {
-return 'https://endroutelogistics.onrender.com/api/route/analyze';
+  return '/api/route/analyze';
 }
 
    </script>
   <style>
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes spin { 100% { transform: rotate(-360deg); } }
   </style>
 </body>
 </html>

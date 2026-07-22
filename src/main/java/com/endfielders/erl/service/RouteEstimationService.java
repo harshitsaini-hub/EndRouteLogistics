@@ -37,8 +37,8 @@ public class RouteEstimationService {
 
         // Prompt Gemini for realistic intermediate stops along the route for the transport mode
         String prompt = """
-                You are an Indian logistics route predictor.
-                Estimate the day-by-day transit stops for a shipment.
+                You are an Indian logistics route predictor and geography expert.
+                Estimate realistic day-by-day transit stops for a shipment.
                 Origin Pincode: %s
                 Destination Pincode: %s
                 Mode of Transport: %s
@@ -48,16 +48,17 @@ public class RouteEstimationService {
                 1. Return ONLY a valid JSON array of objects. No markdown, no commentary outside JSON.
                 2. Each object must have:
                    - "day": integer (0 to %d)
-                   - "city": string (City name in India)
+                   - "city": string (Major Recognized City or District Name ONLY. E.g. "Bhopal", "Susner", "Indore", "Ujjain", "Delhi", "Mumbai").
+                     CRITICAL: NEVER use micro-localities, villages, sub-colonies or police station names (e.g. NEVER use "S.I. Line", "Chhota Bangarda", "Paliya"). ALWAYS use the primary Major City/District name!
                    - "pincode": string (6-digit Indian pincode)
-                3. Day 0 MUST be the origin pincode location.
-                4. Day %d MUST be the destination pincode location.
-                5. For intermediate days (Day 1 to %d), estimate realistic transit hub cities & valid 6-digit pincodes along the major %s route.
+                3. Day 0 MUST be the origin pincode location with its true Major City/District name.
+                4. Day %d MUST be the destination pincode location with its true Major City/District name.
+                5. For intermediate days (Day 1 to %d), estimate major logistics hub cities & valid 6-digit pincodes along the major %s route.
 
                 EXAMPLE FORMAT:
                 [
-                  {"day": 0, "city": "New Delhi", "pincode": "%s"},
-                  {"day": %d, "city": "Destination City", "pincode": "%s"}
+                  {"day": 0, "city": "Susner", "pincode": "%s"},
+                  {"day": %d, "city": "Bhopal", "pincode": "%s"}
                 ]
                 """.formatted(
                 originPincode, destPincode, mode, estimatedDays,

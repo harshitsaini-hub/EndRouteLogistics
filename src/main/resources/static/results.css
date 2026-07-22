@@ -62,11 +62,11 @@
   gap: 2rem;
   flex-wrap: wrap;
   margin-bottom: 3rem;
-  background-color: #FFF2F0;
+  background-color: #FFFFFF;
   border-radius: 1.5rem;
   padding: 1.5rem;
-  border: 1px solid #FFA896;
-  box-shadow: 0 12px 24px rgba(56, 0, 10, 0.05);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
   animation: fadeIn 0.8s ease;
 }
 
@@ -99,7 +99,90 @@
 
 .summary-divider {
   width: 1px;
-  background-color: rgba(155, 19, 19, 0.2);
+  background-color: #E2E8F0;
+}
+
+.ai-brief {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-left: 3px solid rgba(37, 99, 235, 0.5);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 3.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  animation: fadeIn 0.8s ease;
+}
+
+.ai-brief::before {
+  content: "auto_awesome";
+  font-family: 'Material Symbols Outlined';
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  opacity: 0.7;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 4rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.truck-road {
+  position: relative;
+  width: 220px;
+  height: 60px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.truck-container {
+  animation: drive 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  display: flex;
+  align-items: center;
+}
+
+.truck-icon {
+  font-size: 44px;
+  color: var(--color-primary);
+}
+
+.road-line {
+  width: 100%;
+  height: 2px;
+  background: var(--color-primary);
+  margin-top: 2px;
+  border-radius: 2px;
+  opacity: 0.35;
+}
+
+@keyframes drive {
+  0% { transform: translateX(-120px); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateX(120px); opacity: 0; }
+}
+
+.loading-text {
+  margin-top: 1.25rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  font-family: var(--font-headline);
 }
 
 .carriers-grid {
@@ -109,11 +192,11 @@
 }
 
 .carrier-card {
-  background-color: #FFF2F0;
+  background-color: #FFFFFF;
   border-radius: 2rem;
   padding: 2rem;
-  border: 1px solid #FFA896;
-  box-shadow: 0 8px 24px rgba(56, 0, 10, 0.08);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   transition: transform 0.4s cubic-bezier(0.86, 0, 0.07, 1), box-shadow 0.4s cubic-bezier(0.86, 0, 0.07, 1), border-color 0.4s ease;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -127,7 +210,7 @@
 
 .carrier-card:hover {
   transform: translateY(-8px) scale(1.01);
-  box-shadow: 0 32px 64px rgba(56, 0, 10, 0.25);
+  box-shadow: 0 24px 48px rgba(37, 99, 235, 0.15);
   border-color: var(--color-primary);
 }
 
@@ -137,26 +220,26 @@
 }
 
 .mode-img-wrapper {
-  width: 120px;
-  height: 120px;
+  width: 90px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-surface-container-lowest);
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 12px rgba(56, 0, 10, 0.05);
-  border: 1px solid rgba(255,168,150, 0.5);
-  transition: transform 0.4s cubic-bezier(0.86, 0, 0.07, 1);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(2, 132, 199, 0.12));
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  transition: transform 0.4s cubic-bezier(0.86, 0, 0.07, 1), background 0.3s ease;
 }
 
 .carrier-card:hover .mode-img-wrapper {
   transform: scale(1.05) rotate(2deg);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(2, 132, 199, 0.22));
 }
 
-.mode-img {
-  width: 85%;
-  height: 85%;
-  object-fit: contain;
+.mode-icon {
+  font-size: 44px;
+  color: var(--color-primary);
 }
 
 .card-center {
@@ -213,7 +296,7 @@
   max-width: 250px;
   line-height: 1.5;
   font-style: italic;
-  background-color: rgba(255, 168, 150, 0.3);
+  background-color: rgba(37, 99, 235, 0.06);
   padding: 0.75rem;
   border-radius: 1rem;
   border-left: 3px solid var(--color-primary);
@@ -237,7 +320,7 @@
 
 .carrier-card:hover .btn-select {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(205, 28, 24, 0.3);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.3);
 }
 
 .btn-select:active {
@@ -259,8 +342,8 @@
   font-weight: 800;
   font-size: 1.2rem;
   font-family: var(--font-headline);
-  box-shadow: 0 8px 16px rgba(56, 0, 10, 0.2);
-  border: 3px solid #FFF2F0;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+  border: 3px solid #FFFFFF;
   z-index: 10;
 }
 

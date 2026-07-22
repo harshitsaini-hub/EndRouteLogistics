@@ -2,32 +2,32 @@
    CSS Custom Properties (Design Tokens)
    ============================================================ */
 :root {
-  --color-primary:                  #CD1C18;
-  --color-primary-container:        #9B1313;
-  --color-primary-fixed:            #CD1C18;
-  --color-primary-fixed-dim:        #9B1313;
-  --color-on-primary:               #FFA896;
-  --color-on-primary-container:     #FFA896;
-  --color-on-primary-fixed:         #FFA896;
+  --color-primary:                  #2563EB;
+  --color-primary-container:        #1D4ED8;
+  --color-primary-fixed:            #3B82F6;
+  --color-primary-fixed-dim:        #1D4ED8;
+  --color-on-primary:               #FFFFFF;
+  --color-on-primary-container:     #DBEAFE;
+  --color-on-primary-fixed:         #FFFFFF;
 
-  --color-secondary:                #9B1313;
-  --color-secondary-container:      #FFA896;
-  --color-on-secondary:             #FFA896;
-  --color-on-secondary-container:   #38000A;
+  --color-secondary:                #0284C7;
+  --color-secondary-container:      #E0F2FE;
+  --color-on-secondary:             #FFFFFF;
+  --color-on-secondary-container:   #0F172A;
 
-  --color-surface:                  #FFA896;
-  --color-surface-tint:             #CD1C18;
-  --color-surface-container:        #F59D8C;
-  --color-surface-container-low:    #FFA896;
-  --color-surface-container-high:   #EB9382;
+  --color-surface:                  #F8FAFC;
+  --color-surface-tint:             #2563EB;
+  --color-surface-container:        #FFFFFF;
+  --color-surface-container-low:    #F8FAFC;
+  --color-surface-container-high:   #F1F5F9;
   --color-surface-container-lowest: #ffffff;
-  --color-on-surface:               #38000A;
-  --color-on-surface-variant:       #9B1313;
+  --color-on-surface:               #0F172A;
+  --color-on-surface-variant:       #475569;
 
-  --color-background:               #FFA896;
-  --color-on-background:            #38000A;
-  --color-outline:                  #9B1313;
-  --color-outline-variant:          #CD1C18;
+  --color-background:               #0F172A;
+  --color-on-background:            #F8FAFC;
+  --color-outline:                  #CBD5E1;
+  --color-outline-variant:          #94A3B8;
 
   --font-headline: 'Manrope', sans-serif;
   --font-body:     'Inter', sans-serif;
