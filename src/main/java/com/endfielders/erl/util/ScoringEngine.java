@@ -82,6 +82,18 @@ public class ScoringEngine {
         return Math.max(0, Math.round(finalScore * 100.0) / 100.0);
     }
 
+    /**
+     * Overloaded calculateScoreWithTimeline convenience method without relative benchmark metrics.
+     */
+    public static double calculateScoreWithTimeline(Carrier c,
+                                                    String cargoType,
+                                                    String priority,
+                                                    boolean fragile,
+                                                    boolean perishable,
+                                                    List<DayWeather> timeline) {
+        return calculateScoreWithTimeline(c, cargoType, priority, fragile, perishable, timeline, c.getCostPerKg(), c.getEstimatedDays(), null);
+    }
+
     private static double normalizeRelative(double value, double average) {
         if (average == 0) return 50;
         double ratio = value / average;

@@ -53,6 +53,7 @@ class CarrierServiceTest {
         c2.setActiveStatus(true);
 
         when(carrierRepository.findByActiveStatusTrue()).thenReturn(List.of(c1, c2));
+        when(carrierRepository.findByCategoryInAndActiveStatusTrue(anyList())).thenReturn(List.of(c1, c2));
         when(weatherService.buildWeatherSummary(anyString(), anyString())).thenReturn("Clear weather");
         when(routeEstimationService.estimateRouteStops(anyString(), anyString(), anyString(), anyInt())).thenReturn(List.of());
         when(weatherService.batchFetchForecasts(anyList(), anyMap())).thenReturn(List.of());
