@@ -333,7 +333,11 @@
   }
 
 function resolveApiUrl() {
-  return '/api/route/analyze';
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return '/api/route/analyze';
+  }
+  return 'https://endroutelogistics.onrender.com/api/route/analyze';
 }
 
    </script>
