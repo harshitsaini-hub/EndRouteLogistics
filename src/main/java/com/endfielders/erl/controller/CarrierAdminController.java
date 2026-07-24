@@ -53,7 +53,7 @@ public class CarrierAdminController {
     @Operation(summary = "Update an existing carrier")
     @PutMapping("/{id}")
     public ResponseEntity<Carrier> updateCarrier(@PathVariable Long id, @RequestBody Carrier updated) {
-        return carrierRepository.findById(id)
+        return carrierRepository.findById(id)//
                 .map(existing -> {
                     if (updated.getName() != null) existing.setName(updated.getName());
                     if (updated.getMode() != null) existing.setMode(updated.getMode());
