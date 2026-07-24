@@ -36,6 +36,9 @@ public class CarrierAdminController {
     @Operation(summary = "Get a carrier by ID")
     @GetMapping("/{id}")
     public ResponseEntity<Carrier> getCarrierById(@PathVariable Long id) {
+        if (id == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return carrierRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -53,6 +56,9 @@ public class CarrierAdminController {
     @Operation(summary = "Update an existing carrier")
     @PutMapping("/{id}")
     public ResponseEntity<Carrier> updateCarrier(@PathVariable Long id, @RequestBody Carrier updated) {
+        if (id == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return carrierRepository.findById(id)//
                 .map(existing -> {
                     if (updated.getName() != null) existing.setName(updated.getName());
