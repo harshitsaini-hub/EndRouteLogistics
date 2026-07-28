@@ -55,7 +55,7 @@ public class WeatherService {
             return "Weather data unavailable";
         }
         try {
-            String cc = (weatherCountryCode == null || weatherCountryCode.isBlank()) ? "IN" : weatherCountryCode.trim().toUpperCase(Locale.ROOT);
+            String cc = resolveCountryCode();
             String url = "https://api.openweathermap.org/data/2.5/weather?zip=" + locationCode + "," + cc
                     + "&appid=" + weatherApiKey + "&units=metric";
 
@@ -198,7 +198,7 @@ public class WeatherService {
     private List<Map<String, Object>> fetchForecastByPincode(String pincode) {
         if (weatherApiKey == null || weatherApiKey.isBlank() || pincode == null || pincode.isBlank()) return null;
         try {
-            String cc = (weatherCountryCode == null || weatherCountryCode.isBlank()) ? "IN" : weatherCountryCode.trim().toUpperCase(Locale.ROOT);
+            String cc = resolveCountryCode();
             String url = FORECAST_URL + "?zip=" + pincode + "," + cc
                     + "&appid=" + weatherApiKey + "&units=metric";
 
@@ -262,6 +262,10 @@ public class WeatherService {
             dw.setCondition("Parse error");
             dw.setAdvisory("Could not parse weather data.");
         }
+    }
+
+    private String resolveCountryCode() {
+        return (weatherCountryCode == null || weatherCountryCode.isBlank()) ? "IN" : weatherCountryCode.trim().toUpperCase(Locale.ROOT);
     }
 
     private String generateAdvisory(DayWeather dw) {

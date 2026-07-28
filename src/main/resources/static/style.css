@@ -174,21 +174,7 @@ button {
   width: 100%;
 }
 
-.btn-signin {
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-  padding: 0.5rem 1.5rem;
-  border-radius: var(--radius-lg);
-  font-family: var(--font-headline);
-  font-weight: 600;
-  font-size: 0.875rem;
-  transform: scale(0.95);
-  transition: transform 0.15s;
-}
 
-.btn-signin:active {
-  transform: scale(0.90);
-}
 
 /* ============================================================
    Main
@@ -465,14 +451,14 @@ button {
 .cta-blob--top {
   top: 0;
   right: 0;
-  background-color: rgba(205, 28, 24, 0.40);
+  background-color: rgba(37, 99, 235, 0.40);
   transform: translate(50%, -50%);
 }
 
 .cta-blob--bottom {
   bottom: 0;
   left: 0;
-  background-color: rgba(155, 19, 19, 0.40);
+  background-color: rgba(29, 78, 216, 0.40);
   transform: translate(-50%, 50%);
 }
 

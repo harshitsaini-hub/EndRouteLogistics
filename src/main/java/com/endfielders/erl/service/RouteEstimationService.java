@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import com.endfielders.erl.util.JsonUtil;
 
 /**
  * Uses Gemini AI to predict intermediate day-wise locations (city & pincode)
@@ -70,11 +71,8 @@ public class RouteEstimationService {
 
         if (aiResponseRaw != null && !aiResponseRaw.isBlank()) {
             try {
-                String cleanJson = aiResponseRaw.replace("```json", "").replace("```", "").trim();
-                int start = cleanJson.indexOf("[");
-                int end = cleanJson.lastIndexOf("]");
-                if (start != -1 && end != -1 && end > start) {
-                    cleanJson = cleanJson.substring(start, end + 1);
+                String cleanJson = JsonUtil.extractJson(aiResponseRaw);
+                if (cleanJson != null && !cleanJson.isBlank()) {
                     List<Map<String, Object>> parsed = objectMapper.readValue(cleanJson, new TypeReference<>() {});
                     for (Map<String, Object> item : parsed) {
                         int day = item.get("day") instanceof Number ? ((Number) item.get("day")).intValue() : 0;

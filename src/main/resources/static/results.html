@@ -324,14 +324,7 @@
     }, 500);
   }
 
-  function openCarrierWebsite(websiteEncoded) {
-    const website = decodeURIComponent(websiteEncoded || '');
-    if (!website) {
-      alert('No direct carrier website is available for this option.');
-      return;
-    }
-    window.open(website, '_blank', 'noopener,noreferrer');
-  }
+
 
 function resolveApiUrl() {
   const host = window.location.hostname;

@@ -4,7 +4,6 @@ import com.endfielders.erl.dto.RouteRequest;
 import com.endfielders.erl.dto.RouteResponse;
 import com.endfielders.erl.model.RankedCarrier;
 import com.endfielders.erl.service.CarrierService;
-import com.endfielders.erl.service.GeminiService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,11 +20,9 @@ import java.util.List;
 public class RouteController {
 
     private final CarrierService carrierService;
-    private final GeminiService geminiService;
 
-    public RouteController(CarrierService carrierService, GeminiService geminiService) {
+    public RouteController(CarrierService carrierService) {
         this.carrierService = carrierService;
-        this.geminiService = geminiService;
     }
 
     @Operation(summary = "Analyze route and get ranked carriers")

@@ -8,6 +8,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.endfielders.erl.util.JsonUtil;
 
 @Service
 public class GeminiService {
@@ -129,12 +130,7 @@ public class GeminiService {
         }
 
         try {
-            String cleanJson = response.replace("```json", "").replace("```", "").trim();
-            int start = cleanJson.indexOf("{");
-            int end = cleanJson.lastIndexOf("}");
-            if (start != -1 && end != -1) {
-                cleanJson = cleanJson.substring(start, end + 1);
-            }
+            String cleanJson = JsonUtil.extractJson(response);
             
             Map<String, Integer> map = mapper.readValue(cleanJson, mapper.getTypeFactory().constructMapType(Map.class, String.class, Integer.class));
             return map.isEmpty() ? defaultScores : map;

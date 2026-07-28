@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import com.endfielders.erl.util.JsonUtil;
 
 /**
  * Main business service for ranking carriers and generating AI insights.
@@ -134,6 +135,7 @@ public class CarrierService {
             rc.setWebsite(c.getWebsite());
             rc.setReliabilityScore(c.getReliabilityScore());
             rc.setActiveStatus(c.isActiveStatus());
+            rc.setCategory(c.getCategory());
 
             // Fetch deduplicated weather forecasts for this carrier's route
             List<RouteStop> stops = carrierStopsMap.get(c.getId());
@@ -213,13 +215,7 @@ public class CarrierService {
 
                 try {
                     if (aiResponseRaw != null && !aiResponseRaw.trim().isEmpty()) {
-                        String cleanJson = aiResponseRaw.replace("```json", "").replace("```", "").trim();
-                        int start = cleanJson.indexOf("{");
-                        int end = cleanJson.lastIndexOf("}");
-
-                        if (start != -1 && end != -1) {
-                            cleanJson = cleanJson.substring(start, end + 1);
-                        }
+                        String cleanJson = JsonUtil.extractJson(aiResponseRaw);
                         Map<?, ?> map = mapper.readValue(cleanJson, Map.class);
 
                         if (map.containsKey("insight")) rc.setAiInsight(map.get("insight").toString());
