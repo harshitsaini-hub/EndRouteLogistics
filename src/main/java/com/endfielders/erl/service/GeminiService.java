@@ -61,8 +61,8 @@ public class GeminiService {
         HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        int maxRetries = 3;
-        long waitTimeMs = 7000;
+        int maxRetries = 2;
+        long waitTimeMs = 1200;
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -87,7 +87,7 @@ public class GeminiService {
                 return part.get("text").toString().trim();
 
             } catch (HttpClientErrorException.TooManyRequests e) {
-                System.out.println("⏳ Gemini API Rate Limit (429) hit. Waiting 7 seconds... (Attempt " + attempt + " of " + maxRetries + ")");
+                System.out.println("⏳ Gemini API Rate Limit (429) hit. Waiting 1.2s... (Attempt " + attempt + " of " + maxRetries + ")");
                 if (attempt == maxRetries) {
                     System.out.println("❌ Max retries reached for Gemini API.");
                     return null;
@@ -106,12 +106,26 @@ public class GeminiService {
         return null;
     }
 
+    private static final Map<String, Map<String, Integer>> PRESET_SUITABILITY = Map.of(
+        "Commercial B2B & Bulk Freight", Map.of("Air", 40, "Road", 90, "Rail", 95),
+        "E-Commerce & Retail Small Parcels", Map.of("Air", 90, "Road", 80, "Rail", 60),
+        "Household Shifting & Packers Movers", Map.of("Air", 20, "Road", 95, "Rail", 50),
+        "Cold Chain, Exim & Special Cargo", Map.of("Air", 75, "Road", 85, "Rail", 70),
+        "Electronics", Map.of("Air", 95, "Road", 75, "Rail", 50),
+        "Food & Perishables", Map.of("Air", 85, "Road", 80, "Rail", 60),
+        "Machinery", Map.of("Air", 30, "Road", 85, "Rail", 90)
+    );
+
     /**
      * Ask Gemini to rate the suitability of a cargo type for Air, Road, and Rail modes.
      * Returns a map with scores from 1-100.
      */
     public Map<String, Integer> getCargoModeSuitability(String cargoType) {
         String safeCargoType = (cargoType == null || cargoType.isBlank()) ? GENERAL_GOODS : cargoType.trim();
+        
+        if (PRESET_SUITABILITY.containsKey(safeCargoType)) {
+            return PRESET_SUITABILITY.get(safeCargoType);
+        }
         
         String prompt = """
         You are a logistics engine. Rate how suitable "%s" is for different transport modes.
