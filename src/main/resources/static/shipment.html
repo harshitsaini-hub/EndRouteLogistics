@@ -49,7 +49,6 @@
               Pickup Location
             </label>
             <input class="form-input" id="originPincode" placeholder="Enter 6-digit origin pincode e.g. 110001" type="text" maxlength="6">
-            <div id="originLocationBadge" class="location-badge" style="display: none;"></div>
           </div>
 
           <div class="form-group">
@@ -58,7 +57,6 @@
               Delivery Location
             </label>
             <input class="form-input" id="destinationPincode" placeholder="Enter 6-digit destination pincode e.g. 400001" type="text" maxlength="6">
-            <div id="destLocationBadge" class="location-badge" style="display: none;"></div>
           </div>
 
           <div class="form-group form-group--full">
@@ -127,10 +125,6 @@
                 <span class="toggle-slider"></span>
               </div>
             </label>
-          </div>
-
-          <div id="smartAlertContainer" style="grid-column: 1 / -1; display: none;">
-            <div id="smartAlertBadge" class="smart-alert-badge"></div>
           </div>
 
           <div class="form-group form-group--full form-submit">
@@ -216,145 +210,17 @@
             if (selectWrapper.id === 'cargoType') {
               const customGroup = document.getElementById('customCargoGroup');
               const customInput = document.getElementById('customCargoType');
-              const val = option.dataset.value;
-
-              if (val === 'Other') {
+              if (option.dataset.value === 'Other') {
                 customGroup.style.display = 'flex';
                 customInput.focus();
               } else {
                 customGroup.style.display = 'none';
                 customInput.value = '';
               }
-
-              // Auto-toggle defaults for specialized cargo
-              if (val === 'Cold Chain, Exim & Special Cargo' || val === 'Food & Perishables') {
-                if (perishableToggle) perishableToggle.checked = true;
-              } else if (val === 'Electronics') {
-                if (fragileToggle) fragileToggle.checked = true;
-              }
-
-              updateSmartAlerts();
             }
           });
         });
       });
-
-      // -------------------------------------------------------------
-      // PIN Code Auto-Lookup & Location Badge
-      // -------------------------------------------------------------
-      const PINCODE_MAP = {
-        '110001': 'New Delhi, Delhi',
-        '400001': 'Mumbai, Maharashtra',
-        '560001': 'Bengaluru, Karnataka',
-        '600001': 'Chennai, Tamil Nadu',
-        '700001': 'Kolkata, West Bengal',
-        '380001': 'Ahmedabad, Gujarat',
-        '500001': 'Hyderabad, Telangana',
-        '452001': 'Indore, Madhya Pradesh',
-        '462001': 'Bhopal, Madhya Pradesh',
-        '302001': 'Jaipur, Rajasthan',
-        '201301': 'Noida, Uttar Pradesh',
-        '122001': 'Gurugram, Haryana',
-        '411001': 'Pune, Maharashtra'
-      };
-
-      async function lookupPincode(pincode, badgeElement) {
-        if (!/^[1-9][0-9]{5}$/.test(pincode)) {
-          badgeElement.style.display = 'none';
-          return;
-        }
-
-        badgeElement.className = 'location-badge';
-        badgeElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">sync</span> Fetching location...';
-        badgeElement.style.display = 'inline-flex';
-
-        // Check local map first
-        if (PINCODE_MAP[pincode]) {
-          badgeElement.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;">location_on</span> ${PINCODE_MAP[pincode]}`;
-          return;
-        }
-
-        try {
-          const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-          const data = await res.json();
-          if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
-            const po = data[0].PostOffice[0];
-            const locName = `${po.District || po.Name}, ${po.State}`;
-            PINCODE_MAP[pincode] = locName; // Cache in memory
-            badgeElement.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;">location_on</span> ${locName}`;
-          } else {
-            badgeElement.className = 'location-badge invalid';
-            badgeElement.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;">warning</span> Invalid Pincode`;
-          }
-        } catch (err) {
-          badgeElement.className = 'location-badge';
-          badgeElement.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;">location_on</span> Indian PIN ${pincode}`;
-        }
-      }
-
-      const originInput = document.getElementById('originPincode');
-      const destInput = document.getElementById('destinationPincode');
-      const originBadge = document.getElementById('originLocationBadge');
-      const destBadge = document.getElementById('destLocationBadge');
-
-      if (originInput) {
-        originInput.addEventListener('input', (e) => {
-          const val = e.target.value.trim();
-          if (val.length === 6) lookupPincode(val, originBadge);
-          else if (val.length < 6) originBadge.style.display = 'none';
-        });
-      }
-
-      if (destInput) {
-        destInput.addEventListener('input', (e) => {
-          const val = e.target.value.trim();
-          if (val.length === 6) lookupPincode(val, destBadge);
-          else if (val.length < 6) destBadge.style.display = 'none';
-        });
-      }
-
-      // -------------------------------------------------------------
-      // Smart Conditional Logic & Warning Badges for Cargo & Toggles
-      // -------------------------------------------------------------
-      const fragileToggle = document.getElementById('fragileToggle');
-      const perishableToggle = document.getElementById('perishableToggle');
-      const alertContainer = document.getElementById('smartAlertContainer');
-      const alertBadge = document.getElementById('smartAlertBadge');
-
-      function updateSmartAlerts() {
-        const cargoWrapper = document.getElementById('cargoType');
-        const cargoVal = cargoWrapper ? cargoWrapper.dataset.value : '';
-
-        let message = '';
-        let isWarning = false;
-
-        if (cargoVal === 'Cold Chain, Exim & Special Cargo' || cargoVal === 'Food & Perishables') {
-          if (!perishableToggle.checked) {
-            message = '⚠️ Cold Chain & Food cargo typically requires temperature-controlled perishable handling.';
-            isWarning = true;
-          } else {
-            message = 'ℹ️ Temperature-controlled perishable handling enabled for Cold Chain / Food cargo.';
-          }
-        } else if (cargoVal === 'Electronics') {
-          if (!fragileToggle.checked) {
-            message = '⚠️ Electronics & sensitive gadgets typically require shock-safe fragile handling.';
-            isWarning = true;
-          } else {
-            message = 'ℹ️ Shock-safe fragile handling enabled for Electronics cargo.';
-          }
-        }
-
-        if (message) {
-          alertBadge.className = isWarning ? 'smart-alert-badge warning' : 'smart-alert-badge';
-          alertBadge.innerHTML = message;
-          alertContainer.style.display = 'block';
-        } else {
-          alertContainer.style.display = 'none';
-        }
-      }
-
-      if (fragileToggle) fragileToggle.addEventListener('change', updateSmartAlerts);
-      if (perishableToggle) perishableToggle.addEventListener('change', updateSmartAlerts);
         
       // Close custom select when clicking outside
       document.addEventListener('click', (e) => {

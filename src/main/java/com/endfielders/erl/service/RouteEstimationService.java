@@ -17,7 +17,6 @@ public class RouteEstimationService {
 
     private final GeminiService geminiService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, List<RouteStop>> estimationCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     public RouteEstimationService(GeminiService geminiService) {
         this.geminiService = geminiService;
@@ -35,11 +34,6 @@ public class RouteEstimationService {
         if (estimatedDays <= 0) {
             stops.add(new RouteStop(0, "Origin (" + originPincode + ")", originPincode));
             return stops;
-        }
-
-        String cacheKey = originPincode + ":" + destPincode + ":" + mode + ":" + estimatedDays;
-        if (estimationCache.containsKey(cacheKey)) {
-            return new ArrayList<>(estimationCache.get(cacheKey));
         }
 
         // Prompt Gemini for realistic intermediate stops along the route for the transport mode
@@ -98,7 +92,6 @@ public class RouteEstimationService {
         }
 
         stops.sort(Comparator.comparingInt(RouteStop::getDay));
-        estimationCache.put(cacheKey, stops);
         return stops;
     }
 

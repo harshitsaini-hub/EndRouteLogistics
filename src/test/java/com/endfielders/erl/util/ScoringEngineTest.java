@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -55,16 +54,8 @@ class ScoringEngineTest {
     @Test
     @DisplayName("FASTEST priority should favor speed (fewer days)")
     void testFastestPriority() {
-        double avgCost = (airCarrier.getCostPerKg() + roadCarrier.getCostPerKg()) / 2;
-        double avgSpeed = (airCarrier.getEstimatedDays() + roadCarrier.getEstimatedDays()) / 2.0;
-        Map<String, Integer> suitability = Map.of("Air", 90, "Road", 65, "Rail", 65);
-
-        double airScore = ScoringEngine.calculateScoreWithTimeline(
-                airCarrier, "Electronics", "FASTEST", true, false,
-                new ArrayList<>(), avgCost, avgSpeed, suitability);
-        double roadScore = ScoringEngine.calculateScoreWithTimeline(
-                roadCarrier, "Electronics", "FASTEST", true, false,
-                new ArrayList<>(), avgCost, avgSpeed, suitability);
+        double airScore = ScoringEngine.calculateScore(airCarrier, "Electronics", "FASTEST", true, false, "clear");
+        double roadScore = ScoringEngine.calculateScore(roadCarrier, "Electronics", "FASTEST", true, false, "clear");
 
         assertTrue(airScore > roadScore, "Air carrier should score higher than road carrier for FASTEST priority");
     }
@@ -72,16 +63,8 @@ class ScoringEngineTest {
     @Test
     @DisplayName("CHEAPEST priority should favor lower cost")
     void testCheapestPriority() {
-        double avgCost = (airCarrier.getCostPerKg() + roadCarrier.getCostPerKg()) / 2;
-        double avgSpeed = (airCarrier.getEstimatedDays() + roadCarrier.getEstimatedDays()) / 2.0;
-        Map<String, Integer> suitability = Map.of("Air", 65, "Road", 65, "Rail", 65);
-
-        double airScore = ScoringEngine.calculateScoreWithTimeline(
-                airCarrier, "General", "CHEAPEST", false, false,
-                new ArrayList<>(), avgCost, avgSpeed, suitability);
-        double roadScore = ScoringEngine.calculateScoreWithTimeline(
-                roadCarrier, "General", "CHEAPEST", false, false,
-                new ArrayList<>(), avgCost, avgSpeed, suitability);
+        double airScore = ScoringEngine.calculateScore(airCarrier, "General", "CHEAPEST", false, false, "clear");
+        double roadScore = ScoringEngine.calculateScore(roadCarrier, "General", "CHEAPEST", false, false, "clear");
 
         assertTrue(roadScore > airScore, "Road carrier should score higher than air carrier for CHEAPEST priority");
     }
@@ -104,16 +87,8 @@ class ScoringEngineTest {
         day1.setTemperature(24.0);
         badWeatherTimeline.add(day1);
 
-        double avgCost = roadCarrier.getCostPerKg();
-        double avgSpeed = roadCarrier.getEstimatedDays();
-        Map<String, Integer> suitability = Map.of("Air", 65, "Road", 65, "Rail", 65);
-
-        double clearScore = ScoringEngine.calculateScoreWithTimeline(
-                roadCarrier, "General", "BALANCED", false, false,
-                new ArrayList<>(), avgCost, avgSpeed, suitability);
-        double rainyScore = ScoringEngine.calculateScoreWithTimeline(
-                roadCarrier, "General", "BALANCED", false, false,
-                badWeatherTimeline, avgCost, avgSpeed, suitability);
+        double clearScore = ScoringEngine.calculateScoreWithTimeline(roadCarrier, "General", "BALANCED", false, false, new ArrayList<>());
+        double rainyScore = ScoringEngine.calculateScoreWithTimeline(roadCarrier, "General", "BALANCED", false, false, badWeatherTimeline);
 
         assertTrue(clearScore > rainyScore, "Score with rain penalty should be lower than clear weather score");
     }
