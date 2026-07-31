@@ -59,7 +59,7 @@ public class CarrierAdminController {
         if (id == null) {
             return ResponseEntity.badRequest().build();
         }
-        return carrierRepository.findById(id)//
+        return carrierRepository.findById(id)
                 .map(existing -> {
                     if (updated.getName() != null) existing.setName(updated.getName());
                     if (updated.getMode() != null) existing.setMode(updated.getMode());

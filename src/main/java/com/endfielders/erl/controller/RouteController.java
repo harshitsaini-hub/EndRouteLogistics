@@ -38,8 +38,8 @@ public class RouteController {
                 request.getDestination(),
                 effectiveCargoType,
                 request.getPriority(),
-                Boolean.TRUE.equals(request.isFragile()),
-                Boolean.TRUE.equals(request.isPerishable())
+                request.isFragile() != null && request.isFragile(),
+                request.isPerishable() != null && request.isPerishable()
         );
 
         // Route insight was already computed in parallel — no extra API call needed

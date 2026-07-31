@@ -1,17 +1,25 @@
 package com.endfielders.erl.service;
 
-import com.endfielders.erl.model.*;
+import com.endfielders.erl.model.Carrier;
+import com.endfielders.erl.model.DayWeather;
+import com.endfielders.erl.model.JourneyTimeline;
+import com.endfielders.erl.model.RankedCarrier;
+import com.endfielders.erl.model.RouteStop;
 import com.endfielders.erl.repository.CarrierRepository;
 import com.endfielders.erl.util.CategoryResolver;
+import com.endfielders.erl.util.JsonUtil;
 import com.endfielders.erl.util.ScoringEngine;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import com.endfielders.erl.util.JsonUtil;
 
 /**
  * Main business service for ranking carriers and generating AI insights.

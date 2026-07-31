@@ -1,12 +1,15 @@
 package com.endfielders.erl.service;
 
 import com.endfielders.erl.model.RouteStop;
+import com.endfielders.erl.util.JsonUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import com.endfielders.erl.util.JsonUtil;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Uses Gemini AI to predict intermediate day-wise locations (city & pincode)
