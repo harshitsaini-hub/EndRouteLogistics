@@ -66,8 +66,8 @@ public class GeminiService {
         HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        int maxRetries = 3;
-        long waitTimeMs = 7000;
+        int maxRetries = 2;
+        long waitTimeMs = 1500;
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -92,7 +92,7 @@ public class GeminiService {
                 return part.get("text").toString().trim();
 
             } catch (HttpClientErrorException.TooManyRequests e) {
-                System.out.println("⏳ Gemini API Rate Limit (429) hit. Waiting 7 seconds... (Attempt " + attempt + " of " + maxRetries + ")");
+                System.out.println("⏳ Gemini API Rate Limit (429) hit. Waiting 1.5 seconds... (Attempt " + attempt + " of " + maxRetries + ")");
                 if (attempt == maxRetries) {
                     System.out.println("❌ Max retries reached for Gemini API.");
                     return null;
