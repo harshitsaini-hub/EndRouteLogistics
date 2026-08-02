@@ -179,8 +179,24 @@ public class CarrierService {
             rankedList.add(rc);
         }
 
-        // Sort carriers by final calculated score (descending)
-        rankedList.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        // -------------------------------------------------------------
+        // Sort carriers according to user's selected priority
+        // -------------------------------------------------------------
+        if ("CHEAPEST".equalsIgnoreCase(priority)) {
+            rankedList.sort((a, b) -> {
+                int costComp = Double.compare(a.getCostPerKg(), b.getCostPerKg());
+                if (costComp != 0) return costComp;
+                return Double.compare(b.getScore(), a.getScore());
+            });
+        } else if ("FASTEST".equalsIgnoreCase(priority)) {
+            rankedList.sort((a, b) -> {
+                int daysComp = Integer.compare(a.getEstimatedDays(), b.getEstimatedDays());
+                if (daysComp != 0) return daysComp;
+                return Double.compare(b.getScore(), a.getScore());
+            });
+        } else {
+            rankedList.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        }
 
         // -------------------------------------------------------------
         // PHASE 3: Parallel AI Insights & Carrier Analysis Generation

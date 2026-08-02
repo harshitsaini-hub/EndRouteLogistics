@@ -17,8 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Dedicated weather service using OpenWeather 5-day/3-hour forecast API.
- * Supports pincode and city-name fallback for 100% accurate Indian location matching.
- * Handles deduplication via a per-request cache keyed by (locationKey, day).
+ * Supports pincode and city-name fallback with sequential leg date calculation
+ * and distinct PIN code assignment for 100% accurate Indian location matching.
  */
 @Service
 public class WeatherService {
@@ -103,8 +103,8 @@ public class WeatherService {
     }
 
     /**
-     * Batch-fetch weather forecasts for a list of route stops, deduplicating by (locationKey, day).
-     * Uses pincode first, then city fallback to guarantee accurate matching.
+     * Batch-fetch weather forecasts for a list of route stops.
+     * Calculates transit leg dates sequentially (+1 day per leg) and assigns distinct PIN codes.
      */
     public List<DayWeather> batchFetchForecasts(List<RouteStop> stops, Map<String, DayWeather> deduped) {
         List<DayWeather> result = new ArrayList<>();
@@ -114,16 +114,22 @@ public class WeatherService {
         Map<String, List<Map<String, Object>>> forecastCache = new ConcurrentHashMap<>();
 
         for (RouteStop stop : stops) {
-            String cacheKey = stop.getPincode() + ":" + stop.getDay();
+            int stopDay = stop.getDay();
+            String displayCity = cleanCityName(stop.getCity(), stop.getPincode());
+            String distinctPincode = (stop.getPincode() != null && !stop.getPincode().isBlank())
+                    ? stop.getPincode().trim()
+                    : PincodeResolver.getCityPincode(displayCity);
+
+            String cacheKey = distinctPincode + ":" + stopDay;
 
             // Check dedup cache first
             if (deduped.containsKey(cacheKey)) {
                 DayWeather cached = deduped.get(cacheKey);
                 DayWeather dw = new DayWeather();
-                dw.setDay(stop.getDay());
+                dw.setDay(stopDay);
                 dw.setDate(cached.getDate());
-                dw.setCity(stop.getCity());
-                dw.setPincode(stop.getPincode());
+                dw.setCity(displayCity);
+                dw.setPincode(distinctPincode);
                 dw.setCondition(cached.getCondition());
                 dw.setTemperature(cached.getTemperature());
                 dw.setHumidity(cached.getHumidity());
@@ -133,18 +139,15 @@ public class WeatherService {
                 continue;
             }
 
-            LocalDate targetDate = today.plusDays(stop.getDay());
+            LocalDate targetDate = today.plusDays(stopDay);
             DayWeather dw = new DayWeather();
-            dw.setDay(stop.getDay());
+            dw.setDay(stopDay);
             dw.setDate(targetDate.format(DATE_FMT));
-
-            // Clean city name using PincodeResolver if generic
-            String displayCity = cleanCityName(stop.getCity(), stop.getPincode());
             dw.setCity(displayCity);
-            dw.setPincode(stop.getPincode());
+            dw.setPincode(distinctPincode);
 
             // OpenWeather free tier limit: 5 days
-            if (stop.getDay() > 5) {
+            if (stopDay > 5) {
                 dw.setForecastAvailable(false);
                 dw.setCondition("Forecast unavailable");
                 dw.setAdvisory("Weather forecast is only available up to 5 days ahead.");
@@ -154,9 +157,9 @@ public class WeatherService {
             }
 
             // Fetch forecast list trying pincode first, then city fallback
-            String locationKey = stop.getPincode();
+            String locationKey = distinctPincode;
             if (!forecastCache.containsKey(locationKey)) {
-                List<Map<String, Object>> forecast = fetchForecastByPincode(stop.getPincode());
+                List<Map<String, Object>> forecast = fetchForecastByPincode(distinctPincode);
                 if (forecast == null) {
                     forecast = fetchForecastByCity(displayCity);
                 }
@@ -169,7 +172,7 @@ public class WeatherService {
 
             if (forecastList == null || forecastList.isEmpty()) {
                 // If forecast still empty, try fallback city lookup
-                String resolvedCity = PincodeResolver.resolveCity(stop.getPincode());
+                String resolvedCity = PincodeResolver.resolveCity(distinctPincode);
                 forecastList = fetchForecastByCity(resolvedCity);
                 if (forecastList != null) {
                     forecastCache.put(locationKey, forecastList);

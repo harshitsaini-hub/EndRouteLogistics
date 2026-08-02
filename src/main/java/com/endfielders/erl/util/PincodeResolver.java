@@ -5,47 +5,62 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Utility for resolving Indian 6-digit pincodes to true City/District names
- * and interpolating realistic transit hubs along Indian logistics corridors.
+ * Utility for resolving Indian 6-digit pincodes to true City/District names,
+ * assigning distinct PIN codes per city, and interpolating geographically accurate
+ * directional transit corridors across India.
  */
 public class PincodeResolver {
 
     private static final Map<String, String> PINCODE_TO_CITY = new HashMap<>();
+    private static final Map<String, String> CITY_TO_PINCODE = new HashMap<>();
 
     static {
         // Specific Major Cities
-        PINCODE_TO_CITY.put("110001", "Delhi");
-        PINCODE_TO_CITY.put("110002", "Delhi");
-        PINCODE_TO_CITY.put("110020", "Delhi");
-        PINCODE_TO_CITY.put("400001", "Mumbai");
-        PINCODE_TO_CITY.put("400050", "Mumbai");
-        PINCODE_TO_CITY.put("560001", "Bengaluru");
-        PINCODE_TO_CITY.put("560002", "Bengaluru");
-        PINCODE_TO_CITY.put("700001", "Kolkata");
-        PINCODE_TO_CITY.put("600001", "Chennai");
-        PINCODE_TO_CITY.put("500001", "Hyderabad");
-        PINCODE_TO_CITY.put("380001", "Ahmedabad");
-        PINCODE_TO_CITY.put("302001", "Jaipur");
-        PINCODE_TO_CITY.put("452001", "Indore");
-        PINCODE_TO_CITY.put("462001", "Bhopal");
-        PINCODE_TO_CITY.put("465693", "Susner");
-        PINCODE_TO_CITY.put("201301", "Noida");
-        PINCODE_TO_CITY.put("122001", "Gurgaon");
-        PINCODE_TO_CITY.put("411001", "Pune");
-        PINCODE_TO_CITY.put("395001", "Surat");
-        PINCODE_TO_CITY.put("141001", "Ludhiana");
-        PINCODE_TO_CITY.put("160017", "Chandigarh");
-        PINCODE_TO_CITY.put("226001", "Lucknow");
-        PINCODE_TO_CITY.put("282001", "Agra");
-        PINCODE_TO_CITY.put("474001", "Gwalior");
-        PINCODE_TO_CITY.put("492001", "Raipur");
-        PINCODE_TO_CITY.put("751001", "Bhubaneswar");
-        PINCODE_TO_CITY.put("781001", "Guwahati");
-        PINCODE_TO_CITY.put("800001", "Patna");
-        PINCODE_TO_CITY.put("834001", "Ranchi");
-        PINCODE_TO_CITY.put("682001", "Kochi");
-        PINCODE_TO_CITY.put("695001", "Trivandrum");
-        PINCODE_TO_CITY.put("641001", "Coimbatore");
+        addMapping("110001", "Delhi");
+        addMapping("110002", "Delhi");
+        addMapping("110020", "Delhi");
+        addMapping("400001", "Mumbai");
+        addMapping("400050", "Mumbai");
+        addMapping("560001", "Bengaluru");
+        addMapping("560002", "Bengaluru");
+        addMapping("700001", "Kolkata");
+        addMapping("600001", "Chennai");
+        addMapping("500001", "Hyderabad");
+        addMapping("380001", "Ahmedabad");
+        addMapping("302001", "Jaipur");
+        addMapping("452001", "Indore");
+        addMapping("462001", "Bhopal");
+        addMapping("465693", "Susner");
+        addMapping("201301", "Noida");
+        addMapping("122001", "Gurgaon");
+        addMapping("411001", "Pune");
+        addMapping("395001", "Surat");
+        addMapping("390001", "Vadodara");
+        addMapping("141001", "Ludhiana");
+        addMapping("160017", "Chandigarh");
+        addMapping("226001", "Lucknow");
+        addMapping("208001", "Kanpur");
+        addMapping("221001", "Varanasi");
+        addMapping("282001", "Agra");
+        addMapping("474001", "Gwalior");
+        addMapping("482001", "Jabalpur");
+        addMapping("492001", "Raipur");
+        addMapping("751001", "Bhubaneswar");
+        addMapping("781001", "Guwahati");
+        addMapping("800001", "Patna");
+        addMapping("834001", "Ranchi");
+        addMapping("826001", "Dhanbad");
+        addMapping("682001", "Kochi");
+        addMapping("695001", "Trivandrum");
+        addMapping("641001", "Coimbatore");
+        addMapping("440001", "Nagpur");
+        addMapping("342001", "Jodhpur");
+        addMapping("422001", "Nashik");
+    }
+
+    private static void addMapping(String pincode, String city) {
+        PINCODE_TO_CITY.put(pincode, city);
+        CITY_TO_PINCODE.putIfAbsent(city.toLowerCase(), pincode);
     }
 
     public static String resolveCity(String pincode) {
@@ -98,26 +113,102 @@ public class PincodeResolver {
     }
 
     /**
-     * Interpolates realistic intermediate cities along Indian transit corridors
-     * when AI is slow or rate-limited.
+     * Returns a distinct 6-digit Indian PIN code for a given city name.
+     */
+    public static String getCityPincode(String cityName) {
+        if (cityName == null || cityName.isBlank()) return "110001";
+        String clean = cityName.replaceAll("\\(.*?\\)", "").trim().toLowerCase();
+        if (CITY_TO_PINCODE.containsKey(clean)) {
+            return CITY_TO_PINCODE.get(clean);
+        }
+        // General defaults by key city patterns
+        if (clean.contains("delhi")) return "110001";
+        if (clean.contains("mumbai")) return "400001";
+        if (clean.contains("bhopal")) return "462001";
+        if (clean.contains("gwalior")) return "474001";
+        if (clean.contains("agra")) return "282001";
+        if (clean.contains("jaipur")) return "302001";
+        if (clean.contains("ahmedabad")) return "380001";
+        if (clean.contains("surat")) return "395001";
+        if (clean.contains("indore")) return "452001";
+        if (clean.contains("nagpur")) return "440001";
+        if (clean.contains("hyderabad")) return "500001";
+        if (clean.contains("bengaluru") || clean.contains("bangalore")) return "560001";
+        if (clean.contains("chennai")) return "600001";
+        if (clean.contains("kolkata")) return "700001";
+        if (clean.contains("kanpur")) return "208001";
+        if (clean.contains("varanasi")) return "221001";
+        if (clean.contains("patna")) return "800001";
+        if (clean.contains("ranchi")) return "834001";
+        if (clean.contains("raipur")) return "492001";
+        if (clean.contains("pune")) return "411001";
+
+        return "110001";
+    }
+
+    /**
+     * Interpolates geographically accurate, directional intermediate cities along Indian transit corridors.
      */
     public static List<String> getIntermediateHubs(String originPincode, String destPincode, int count) {
         String originCity = resolveCity(originPincode);
         String destCity = resolveCity(destPincode);
 
-        // Major national freight corridors
-        if ((originCity.equals("Delhi") && destCity.equals("Mumbai")) || (originCity.equals("Mumbai") && destCity.equals("Delhi"))) {
-            return List.of("Jaipur", "Ahmedabad", "Vadodara", "Surat").subList(0, Math.min(count, 4));
+        // 1. Bhopal <-> Delhi Corridor (Northward / Southward)
+        if (originCity.equals("Bhopal") && destCity.equals("Delhi")) {
+            return selectSubset(List.of("Gwalior", "Agra"), count);
         }
-        if ((originCity.equals("Delhi") && destCity.equals("Bengaluru")) || (originCity.equals("Bengaluru") && destCity.equals("Delhi"))) {
-            return List.of("Gwalior", "Bhopal", "Nagpur", "Hyderabad").subList(0, Math.min(count, 4));
-        }
-        if ((originCity.equals("Delhi") && destCity.equals("Kolkata")) || (originCity.equals("Kolkata") && destCity.equals("Delhi"))) {
-            return List.of("Agra", "Kanpur", "Varanasi", "Dhanbad").subList(0, Math.min(count, 4));
+        if (originCity.equals("Delhi") && destCity.equals("Bhopal")) {
+            return selectSubset(List.of("Agra", "Gwalior"), count);
         }
 
-        // Default major logistics hubs
-        List<String> defaults = List.of("Jaipur", "Bhopal", "Nagpur", "Hyderabad", "Pune");
-        return defaults.subList(0, Math.min(count, defaults.size()));
+        // 2. Delhi <-> Mumbai Corridor (South-West / North-East)
+        if (originCity.equals("Delhi") && destCity.equals("Mumbai")) {
+            return selectSubset(List.of("Jaipur", "Ahmedabad", "Vadodara", "Surat"), count);
+        }
+        if (originCity.equals("Mumbai") && destCity.equals("Delhi")) {
+            return selectSubset(List.of("Surat", "Vadodara", "Ahmedabad", "Jaipur"), count);
+        }
+
+        // 3. Bhopal <-> Mumbai Corridor
+        if (originCity.equals("Bhopal") && destCity.equals("Mumbai")) {
+            return selectSubset(List.of("Indore", "Nashik"), count);
+        }
+        if (originCity.equals("Mumbai") && destCity.equals("Bhopal")) {
+            return selectSubset(List.of("Nashik", "Indore"), count);
+        }
+
+        // 4. Delhi <-> Bengaluru Corridor
+        if (originCity.equals("Delhi") && destCity.equals("Bengaluru")) {
+            return selectSubset(List.of("Agra", "Gwalior", "Bhopal", "Nagpur", "Hyderabad"), count);
+        }
+        if (originCity.equals("Bengaluru") && destCity.equals("Delhi")) {
+            return selectSubset(List.of("Hyderabad", "Nagpur", "Bhopal", "Gwalior", "Agra"), count);
+        }
+
+        // 5. Delhi <-> Kolkata Corridor
+        if (originCity.equals("Delhi") && destCity.equals("Kolkata")) {
+            return selectSubset(List.of("Kanpur", "Varanasi", "Patna"), count);
+        }
+        if (originCity.equals("Kolkata") && destCity.equals("Delhi")) {
+            return selectSubset(List.of("Patna", "Varanasi", "Kanpur"), count);
+        }
+
+        // 6. Mumbai <-> Kolkata Corridor
+        if (originCity.equals("Mumbai") && destCity.equals("Kolkata")) {
+            return selectSubset(List.of("Nagpur", "Raipur", "Ranchi"), count);
+        }
+        if (originCity.equals("Kolkata") && destCity.equals("Mumbai")) {
+            return selectSubset(List.of("Ranchi", "Raipur", "Nagpur"), count);
+        }
+
+        // Default directional hubs
+        List<String> defaults = List.of("Gwalior", "Agra", "Jaipur", "Ahmedabad", "Nagpur");
+        return selectSubset(defaults, count);
+    }
+
+    private static List<String> selectSubset(List<String> list, int count) {
+        if (count <= 0) return List.of();
+        if (count >= list.size()) return list;
+        return list.subList(0, count);
     }
 }

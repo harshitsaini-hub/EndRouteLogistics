@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Uses Gemini AI with in-memory caching and PincodeResolver fallbacks to predict
- * realistic intermediate day-wise locations (city & pincode).
+ * geographically accurate, directional intermediate day-wise locations with distinct PIN codes.
  */
 @Service
 public class RouteEstimationService {
@@ -74,11 +74,13 @@ public class RouteEstimationService {
                 1. Return ONLY a valid JSON array of objects. No markdown, no commentary outside JSON.
                 2. Each object must have:
                    - "day": integer (0 to %d)
-                   - "city": string (Major Recognized City Name ONLY. E.g. "Delhi", "Jaipur", "Ahmedabad", "Mumbai").
-                   - "pincode": string (6-digit Indian pincode)
+                   - "city": string (Major Recognized City Name ONLY. E.g. "Delhi", "Gwalior", "Agra", "Jaipur", "Ahmedabad", "Mumbai").
+                   - "pincode": string (Distinct 6-digit Indian pincode for that specific city)
                 3. Day 0 MUST be %s (Pincode: %s).
                 4. Day %d MUST be %s (Pincode: %s).
                 5. For intermediate days (Day 1 to %d), estimate major logistics hub cities & valid 6-digit pincodes along the major %s route.
+                6. GEOGRAPHIC PATHFINDING PROGRESSION: Intermediate hubs MUST follow the shortest geographical vector progression from origin to destination. For example, from Bhopal to Delhi, hubs MUST progress steadily NORTHWARD (e.g. Bhopal -> Gwalior -> Agra -> Delhi). NEVER select cities in southern or opposite directions.
+                7. DISTINCT PIN CODES: Assign each city its own distinct 6-digit Indian PIN code.
 
                 EXAMPLE FORMAT:
                 [
@@ -104,7 +106,9 @@ public class RouteEstimationService {
                     for (Map<String, Object> item : parsed) {
                         int day = item.get("day") instanceof Number ? ((Number) item.get("day")).intValue() : 0;
                         String city = item.get("city") != null ? item.get("city").toString() : "Transit Hub";
-                        String pincode = item.get("pincode") != null ? item.get("pincode").toString() : safeOrigin;
+                        String pincode = (item.get("pincode") != null && !item.get("pincode").toString().isBlank())
+                                ? item.get("pincode").toString().trim()
+                                : PincodeResolver.getCityPincode(city);
                         stops.add(new RouteStop(day, city, pincode));
                     }
                 }
@@ -134,8 +138,9 @@ public class RouteEstimationService {
         List<String> hubCities = PincodeResolver.getIntermediateHubs(origin, dest, intermediateCount);
 
         for (int d = 1; d < days; d++) {
-            String hubName = (d - 1 < hubCities.size()) ? hubCities.get(d - 1) : originCity + " Corridor " + d;
-            fallback.add(new RouteStop(d, hubName, origin));
+            String hubName = (d - 1 < hubCities.size()) ? hubCities.get(d - 1) : originCity + " Hub " + d;
+            String hubPincode = PincodeResolver.getCityPincode(hubName);
+            fallback.add(new RouteStop(d, hubName, hubPincode));
         }
 
         if (days > 0) {
