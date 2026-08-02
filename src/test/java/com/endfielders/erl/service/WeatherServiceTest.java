@@ -16,7 +16,9 @@ class WeatherServiceTest {
 
     @BeforeEach
     void setUp() {
-        weatherService = new WeatherService();
+        CityDataService cityDataService = new CityDataService();
+        cityDataService.init();
+        weatherService = new WeatherService(cityDataService);
     }
 
     @Test

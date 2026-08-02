@@ -2,7 +2,6 @@ package com.endfielders.erl.service;
 
 import com.endfielders.erl.model.DayWeather;
 import com.endfielders.erl.model.RouteStop;
-import com.endfielders.erl.util.PincodeResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -17,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Dedicated weather service using OpenWeather 5-day/3-hour forecast API.
- * Supports pincode and city-name fallback with sequential leg date calculation
+ * Uses CityDataService for offline geographic fallback, sequential date calculation,
  * and distinct PIN code assignment for 100% accurate Indian location matching.
  */
 @Service
@@ -33,9 +32,11 @@ public class WeatherService {
     private String weatherCountryCode;
 
     private final RestTemplate restTemplate;
+    private final CityDataService cityDataService;
     private final Map<String, String> locationNameCache = new ConcurrentHashMap<>();
 
-    public WeatherService() {
+    public WeatherService(CityDataService cityDataService) {
+        this.cityDataService = cityDataService;
         var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(4000);
         factory.setReadTimeout(6000);
@@ -70,11 +71,12 @@ public class WeatherService {
                 return parseWeatherMap(resp);
             }
         } catch (Exception e) {
-            // Fallback to city name via PincodeResolver
+            // Fallback to city name via CityDataService
         }
 
         // City fallback
-        String resolvedCity = PincodeResolver.resolveCity(locationCode);
+        CityDataService.CityInfo info = cityDataService.findByPincode(locationCode);
+        String resolvedCity = info != null ? info.getCity() : "Delhi";
         try {
             String url = "https://api.openweathermap.org/data/2.5/weather?q=" + resolvedCity + ",IN"
                     + "&appid=" + weatherApiKey + "&units=metric";
@@ -116,9 +118,13 @@ public class WeatherService {
         for (RouteStop stop : stops) {
             int stopDay = stop.getDay();
             String displayCity = cleanCityName(stop.getCity(), stop.getPincode());
+
+            CityDataService.CityInfo cityInfo = cityDataService.findByCityName(displayCity);
+            if (cityInfo == null) cityInfo = cityDataService.findByPincode(stop.getPincode());
+
             String distinctPincode = (stop.getPincode() != null && !stop.getPincode().isBlank())
                     ? stop.getPincode().trim()
-                    : PincodeResolver.getCityPincode(displayCity);
+                    : (cityInfo != null ? cityInfo.getPincode() : "110001");
 
             String cacheKey = distinctPincode + ":" + stopDay;
 
@@ -172,7 +178,8 @@ public class WeatherService {
 
             if (forecastList == null || forecastList.isEmpty()) {
                 // If forecast still empty, try fallback city lookup
-                String resolvedCity = PincodeResolver.resolveCity(distinctPincode);
+                CityDataService.CityInfo fallbackInfo = cityDataService.findByPincode(distinctPincode);
+                String resolvedCity = fallbackInfo != null ? fallbackInfo.getCity() : displayCity;
                 forecastList = fetchForecastByCity(resolvedCity);
                 if (forecastList != null) {
                     forecastCache.put(locationKey, forecastList);
@@ -229,7 +236,8 @@ public class WeatherService {
 
     private String cleanCityName(String city, String pincode) {
         if (city == null || city.isBlank() || city.toLowerCase().contains("transit hub") || city.toLowerCase().contains("origin") || city.toLowerCase().contains("destination")) {
-            return PincodeResolver.resolveCity(pincode);
+            CityDataService.CityInfo info = cityDataService.findByPincode(pincode);
+            return info != null ? info.getCity() : "Delhi";
         }
         return city.replaceAll("\\(.*?\\)", "").trim();
     }
