@@ -38,6 +38,7 @@ public class CarrierService {
     private final WeatherService weatherService;
     private final RouteEstimationService routeEstimationService;
     private final CarrierRepository carrierRepository;
+    private final CityDataService cityDataService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     private volatile String cachedRouteInsight;
@@ -45,11 +46,13 @@ public class CarrierService {
     public CarrierService(GeminiService geminiService,
                           WeatherService weatherService,
                           RouteEstimationService routeEstimationService,
-                          CarrierRepository carrierRepository) {
+                          CarrierRepository carrierRepository,
+                          CityDataService cityDataService) {
         this.geminiService = geminiService;
         this.weatherService = weatherService;
         this.routeEstimationService = routeEstimationService;
         this.carrierRepository = carrierRepository;
+        this.cityDataService = cityDataService;
     }
 
     public List<RankedCarrier> getRankedCarriers(
@@ -93,10 +96,8 @@ public class CarrierService {
                 weatherService.buildWeatherSummary(origin, destination)
         );
 
-        // 1b. Fetch AI cargo suitability mapping in parallel
-        CompletableFuture<Map<String, Integer>> cargoSuitabilityFuture = CompletableFuture.supplyAsync(() ->
-                geminiService.getCargoModeSuitability(safeCargoType)
-        );
+        // 1b. Deterministic cargo mode suitability engine (0ms local lookup)
+        Map<String, Integer> cargoSuitability = cityDataService.getCargoModeSuitability(safeCargoType);
 
         // 2. Estimate route stops for ALL carriers in parallel
         Map<Long, CompletableFuture<List<RouteStop>>> stopFuturesMap = new HashMap<>();
@@ -109,7 +110,6 @@ public class CarrierService {
         // Wait for all route estimations to complete
         CompletableFuture.allOf(stopFuturesMap.values().toArray(new CompletableFuture[0])).join();
         String weatherSummary = weatherSummaryFuture.join();
-        Map<String, Integer> cargoSuitability = cargoSuitabilityFuture.join();
 
         // Collect estimated stops per carrier
         Map<Long, List<RouteStop>> carrierStopsMap = new HashMap<>();

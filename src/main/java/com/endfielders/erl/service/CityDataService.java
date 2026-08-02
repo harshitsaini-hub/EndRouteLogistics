@@ -1,5 +1,6 @@
 package com.endfielders.erl.service;
 
+import com.endfielders.erl.util.CategoryResolver;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -12,8 +13,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Service loading bundled cities.json dataset using modern Java record
- * and pure Haversine distance calculations without hardcoded if-else blocks.
+ * Service loading bundled cities.json dataset using modern Java record,
+ * deterministic mode suitability rules, and spatial bounding box pathfinding.
  */
 @Service
 public class CityDataService {
@@ -75,6 +76,22 @@ public class CityDataService {
         return c != null ? c.pincode() : "110001";
     }
 
+    /**
+     * Deterministic Rule-Based Cargo Mode Suitability Engine (0ms, 100% offline).
+     */
+    public Map<String, Integer> getCargoModeSuitability(String cargoType) {
+        String category = CategoryResolver.resolve(cargoType);
+        if (category == null) category = "GENERAL";
+
+        return switch (category) {
+            case "E_COMMERCE"  -> Map.of("Air", 90, "Road", 75, "Rail", 55);
+            case "COLD_CHAIN"  -> Map.of("Air", 85, "Road", 90, "Rail", 45);
+            case "B2B_FREIGHT" -> Map.of("Air", 30, "Road", 90, "Rail", 85);
+            case "HOUSEHOLD"   -> Map.of("Air", 20, "Road", 95, "Rail", 50);
+            default            -> Map.of("Air", 70, "Road", 80, "Rail", 75);
+        };
+    }
+
     public double calculateDistance(City c1, City c2) {
         if (c1 == null || c2 == null) return -1.0;
 
@@ -94,6 +111,50 @@ public class CityDataService {
         double c = 2 * Math.asin(Math.sqrt(a));
         double r = 6371; // Radius of Earth in KM
         return c * r;
+    }
+
+    /**
+     * Spatial Bounding Box Filter:
+     * Narrows down the dataset to 3-5 candidate hubs geographically located
+     * inside the rectangular corridor between origin and destination.
+     */
+    public List<City> findCandidateHubs(String originPincode, String destPincode, int maxCandidates) {
+        City origin = findByPincode(originPincode);
+        City dest = findByPincode(destPincode);
+
+        if (origin == null) origin = findByPincode("110001");
+        if (dest == null) dest = findByPincode("400001");
+
+        double minLat = Math.min(origin.lat(), dest.lat()) - 0.6;
+        double maxLat = Math.max(origin.lat(), dest.lat()) + 0.6;
+        double minLng = Math.min(origin.lng(), dest.lng()) - 0.6;
+        double maxLng = Math.max(origin.lng(), dest.lng()) + 0.6;
+
+        Set<String> exclude = Set.of(origin.city().toLowerCase(), dest.city().toLowerCase());
+
+        List<City> candidates = new ArrayList<>();
+        for (City c : allCities) {
+            if (exclude.contains(c.city().toLowerCase())) continue;
+            if (c.lat() >= minLat && c.lat() <= maxLat && c.lng() >= minLng && c.lng() <= maxLng) {
+                candidates.add(c);
+            }
+        }
+
+        // Sort candidates by progression projection along the vector
+        double startLat = origin.lat(), startLng = origin.lng();
+        double deltaLat = dest.lat() - startLat, deltaLng = dest.lng() - startLng;
+        double lineLenSq = deltaLat * deltaLat + deltaLng * deltaLng;
+
+        candidates.sort((c1, c2) -> {
+            double proj1 = lineLenSq == 0 ? 0 : ((c1.lat() - startLat) * deltaLat + (c1.lng() - startLng) * deltaLng) / lineLenSq;
+            double proj2 = lineLenSq == 0 ? 0 : ((c2.lat() - startLat) * deltaLat + (c2.lng() - startLng) * deltaLng) / lineLenSq;
+            return Double.compare(proj1, proj2);
+        });
+
+        if (candidates.size() > maxCandidates) {
+            return candidates.subList(0, maxCandidates);
+        }
+        return candidates;
     }
 
     public List<City> calculateVectorPath(String originPincode, String destPincode, int totalDays) {

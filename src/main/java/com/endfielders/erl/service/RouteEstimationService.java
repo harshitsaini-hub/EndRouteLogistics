@@ -11,10 +11,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
- * Uses CityDataService for vector trajectory math and Gemini AI for intermediate day-wise locations
- * with distinct PIN codes and zero-latency fallback.
+ * Two-Step Hybrid Route Estimator:
+ * Step 1: Spatial Bounding Box math narrows dataset to 3-5 candidate hubs.
+ * Step 2: Focused AI prompt asks Gemini to sequence the candidate hubs along Indian highways.
  */
 @Service
 public class RouteEstimationService {
@@ -63,39 +65,44 @@ public class RouteEstimationService {
             return stops;
         }
 
-        // Prompt Gemini for realistic intermediate stops along the route
+        // -----------------------------------------------------------------
+        // Step 1: Spatial Bounding Box Filter (Math Layer)
+        // -----------------------------------------------------------------
+        List<CityDataService.City> candidateHubs = cityDataService.findCandidateHubs(safeOrigin, safeDest, 4);
+
+        String candidateStr = candidateHubs.stream()
+                .map(c -> c.city() + " (Pincode: " + c.pincode() + ")")
+                .collect(Collectors.joining(", "));
+
+        // -----------------------------------------------------------------
+        // Step 2: Focused AI Sequencing Prompt (AI Layer)
+        // -----------------------------------------------------------------
         String prompt = """
-                You are an Indian logistics route predictor and geography expert.
+                You are an Indian logistics route predictor and highway corridor expert.
                 Estimate realistic day-by-day transit stops for a shipment.
                 Origin: %s (Pincode: %s)
                 Destination: %s (Pincode: %s)
                 Mode of Transport: %s
                 Total Transit Days: %d
 
+                Geographically validated candidate transit hubs: [%s].
+
                 RULES:
                 1. Return ONLY a valid JSON array of objects. No markdown, no commentary outside JSON.
                 2. Each object must have:
                    - "day": integer (0 to %d)
-                   - "city": string (Major Recognized City Name ONLY. E.g. "Delhi", "Gwalior", "Agra", "Jaipur", "Ahmedabad", "Mumbai").
-                   - "pincode": string (Distinct 6-digit Indian pincode for that specific city)
+                   - "city": string (Major City Name ONLY)
+                   - "pincode": string (6-digit Indian pincode)
                 3. Day 0 MUST be %s (Pincode: %s).
                 4. Day %d MUST be %s (Pincode: %s).
-                5. For intermediate days (Day 1 to %d), estimate major logistics hub cities & valid 6-digit pincodes along the major %s route.
-                6. GEOGRAPHIC PATHFINDING PROGRESSION: Intermediate hubs MUST follow the shortest geographical vector progression from origin to destination. For example, from Bhopal to Delhi, hubs MUST progress steadily NORTHWARD (e.g. Bhopal -> Gwalior -> Agra -> Delhi). NEVER select cities in southern or opposite directions.
-                7. DISTINCT PIN CODES: Assign each city its own distinct 6-digit Indian PIN code.
-
-                EXAMPLE FORMAT:
-                [
-                  {"day": 0, "city": "%s", "pincode": "%s"},
-                  {"day": %d, "city": "%s", "pincode": "%s"}
-                ]
+                5. For intermediate days (Day 1 to %d), select and sequence from the candidate hubs along major Indian highway corridors.
                 """.formatted(
                 originCityName, safeOrigin, destCityName, safeDest, safeMode, estimatedDays,
+                candidateStr,
                 estimatedDays,
                 originCityName, safeOrigin,
                 estimatedDays, destCityName, safeDest,
-                estimatedDays - 1, safeMode,
-                originCityName, safeOrigin, estimatedDays, destCityName, safeDest
+                estimatedDays - 1
         );
 
         String aiResponseRaw = geminiService.callGemini(prompt);
@@ -122,7 +129,7 @@ public class RouteEstimationService {
             }
         }
 
-        // Mathematical Vector Pathfinding Fallback: Zero-latency, 100% accurate geographical path
+        // Step 3: Mathematical Vector Pathfinding Fallback (0ms, 100% accurate)
         if (stops.isEmpty() || stops.size() < estimatedDays + 1) {
             stops = generateVectorPathStops(safeOrigin, safeDest, estimatedDays);
         }

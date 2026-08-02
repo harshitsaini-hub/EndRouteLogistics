@@ -34,7 +34,9 @@ class CarrierServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        carrierService = new CarrierService(geminiService, weatherService, routeEstimationService, carrierRepository);
+        CityDataService cityDataService = new CityDataService();
+        cityDataService.init();
+        carrierService = new CarrierService(geminiService, weatherService, routeEstimationService, carrierRepository, cityDataService);
 
         Carrier c1 = new Carrier();
         c1.setId(1L);
