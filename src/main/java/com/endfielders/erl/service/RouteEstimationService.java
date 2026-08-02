@@ -38,11 +38,11 @@ public class RouteEstimationService {
         String safeDest = (destPincode == null) ? "400001" : destPincode.trim();
         String safeMode = (mode == null) ? "Road" : mode.trim();
 
-        CityDataService.CityInfo originInfo = cityDataService.findByPincode(safeOrigin);
-        CityDataService.CityInfo destInfo = cityDataService.findByPincode(safeDest);
+        CityDataService.City originInfo = cityDataService.findByPincode(safeOrigin);
+        CityDataService.City destInfo = cityDataService.findByPincode(safeDest);
 
-        String originCityName = originInfo != null ? originInfo.getCity() : "Origin";
-        String destCityName = destInfo != null ? destInfo.getCity() : "Destination";
+        String originCityName = originInfo != null ? originInfo.city() : "Origin";
+        String destCityName = destInfo != null ? destInfo.city() : "Destination";
 
         if (estimatedDays <= 0) {
             return List.of(new RouteStop(0, originCityName, safeOrigin));
@@ -109,10 +109,10 @@ public class RouteEstimationService {
                         int day = item.get("day") instanceof Number ? ((Number) item.get("day")).intValue() : 0;
                         String city = item.get("city") != null ? item.get("city").toString() : "Transit Hub";
 
-                        CityDataService.CityInfo matchedCity = cityDataService.findByCityName(city);
+                        CityDataService.City matchedCity = cityDataService.findByCityName(city);
                         String pincode = (item.get("pincode") != null && !item.get("pincode").toString().isBlank())
                                 ? item.get("pincode").toString().trim()
-                                : (matchedCity != null ? matchedCity.getPincode() : safeOrigin);
+                                : (matchedCity != null ? matchedCity.pincode() : safeOrigin);
 
                         stops.add(new RouteStop(day, city, pincode));
                     }
@@ -134,11 +134,11 @@ public class RouteEstimationService {
 
     private List<RouteStop> generateVectorPathStops(String origin, String dest, int days) {
         List<RouteStop> fallback = new ArrayList<>();
-        List<CityDataService.CityInfo> vectorPath = cityDataService.calculateVectorPath(origin, dest, days);
+        List<CityDataService.City> vectorPath = cityDataService.calculateVectorPath(origin, dest, days);
 
         for (int d = 0; d < vectorPath.size(); d++) {
-            CityDataService.CityInfo info = vectorPath.get(d);
-            fallback.add(new RouteStop(d, info.getCity(), info.getPincode()));
+            CityDataService.City info = vectorPath.get(d);
+            fallback.add(new RouteStop(d, info.city(), info.pincode()));
         }
 
         return fallback;

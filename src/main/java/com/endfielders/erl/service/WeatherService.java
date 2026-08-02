@@ -75,8 +75,8 @@ public class WeatherService {
         }
 
         // City fallback
-        CityDataService.CityInfo info = cityDataService.findByPincode(locationCode);
-        String resolvedCity = info != null ? info.getCity() : "Delhi";
+        CityDataService.City info = cityDataService.findByPincode(locationCode);
+        String resolvedCity = info != null ? info.city() : "Delhi";
         try {
             String url = "https://api.openweathermap.org/data/2.5/weather?q=" + resolvedCity + ",IN"
                     + "&appid=" + weatherApiKey + "&units=metric";
@@ -119,12 +119,12 @@ public class WeatherService {
             int stopDay = stop.getDay();
             String displayCity = cleanCityName(stop.getCity(), stop.getPincode());
 
-            CityDataService.CityInfo cityInfo = cityDataService.findByCityName(displayCity);
+            CityDataService.City cityInfo = cityDataService.findByCityName(displayCity);
             if (cityInfo == null) cityInfo = cityDataService.findByPincode(stop.getPincode());
 
             String distinctPincode = (stop.getPincode() != null && !stop.getPincode().isBlank())
                     ? stop.getPincode().trim()
-                    : (cityInfo != null ? cityInfo.getPincode() : "110001");
+                    : (cityInfo != null ? cityInfo.pincode() : "110001");
 
             String cacheKey = distinctPincode + ":" + stopDay;
 
@@ -178,8 +178,8 @@ public class WeatherService {
 
             if (forecastList == null || forecastList.isEmpty()) {
                 // If forecast still empty, try fallback city lookup
-                CityDataService.CityInfo fallbackInfo = cityDataService.findByPincode(distinctPincode);
-                String resolvedCity = fallbackInfo != null ? fallbackInfo.getCity() : displayCity;
+                CityDataService.City fallbackInfo = cityDataService.findByPincode(distinctPincode);
+                String resolvedCity = fallbackInfo != null ? fallbackInfo.city() : displayCity;
                 forecastList = fetchForecastByCity(resolvedCity);
                 if (forecastList != null) {
                     forecastCache.put(locationKey, forecastList);
@@ -236,8 +236,8 @@ public class WeatherService {
 
     private String cleanCityName(String city, String pincode) {
         if (city == null || city.isBlank() || city.toLowerCase().contains("transit hub") || city.toLowerCase().contains("origin") || city.toLowerCase().contains("destination")) {
-            CityDataService.CityInfo info = cityDataService.findByPincode(pincode);
-            return info != null ? info.getCity() : "Delhi";
+            CityDataService.City info = cityDataService.findByPincode(pincode);
+            return info != null ? info.city() : "Delhi";
         }
         return city.replaceAll("\\(.*?\\)", "").trim();
     }
