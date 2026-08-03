@@ -35,6 +35,7 @@ public class RouteEstimationService {
      * Estimates day-by-day route stops for a shipment.
      * Caches results per (origin, dest, mode, days) combination to eliminate duplicate AI calls.
      */
+    @SuppressWarnings("null")
     public List<RouteStop> estimateRouteStops(String originPincode, String destPincode, String mode, int estimatedDays) {
         String safeOrigin = (originPincode == null) ? "110001" : originPincode.trim();
         String safeDest = (destPincode == null) ? "400001" : destPincode.trim();

@@ -67,12 +67,14 @@ public class CarrierAdminController {
                     if (updated.getCostPerKg() > 0) existing.setCostPerKg(updated.getCostPerKg());
                     if (updated.getWebsite() != null) existing.setWebsite(updated.getWebsite());
                     if (updated.getReliabilityScore() > 0) existing.setReliabilityScore(updated.getReliabilityScore());
+                    @SuppressWarnings("null")
                     Carrier saved = carrierRepository.save(existing);
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @SuppressWarnings("null")
     @Operation(summary = "Soft-delete a carrier (sets activeStatus to false)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteCarrier(@PathVariable Long id) {
@@ -88,6 +90,7 @@ public class CarrierAdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @SuppressWarnings("null")
     @Operation(summary = "Reactivate a soft-deleted carrier")
     @PatchMapping("/{id}/reactivate")
     public ResponseEntity<Carrier> reactivateCarrier(@PathVariable Long id) {

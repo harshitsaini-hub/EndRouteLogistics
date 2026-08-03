@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Main business service for ranking carriers and generating AI insights.
@@ -55,6 +56,7 @@ public class CarrierService {
         this.cityDataService = cityDataService;
     }
 
+    @SuppressWarnings("null")
     public List<RankedCarrier> getRankedCarriers(
             String origin, String destination, String cargoType,
             String priority, boolean fragile, boolean perishable) {
@@ -246,7 +248,7 @@ public class CarrierService {
                         if (map.containsKey("explanation")) rc.setExplanation(map.get("explanation").toString());
                         if (map.containsKey("reasons") && map.get("reasons") instanceof List<?>) {
                             List<String> parsedReasons = ((List<?>) map.get("reasons")).stream()
-                                    .map(Object::toString).limit(3).collect(Collectors.toList());
+                                    .filter(Objects::nonNull).map(Object::toString).limit(3).collect(Collectors.toList());
                             if (!parsedReasons.isEmpty()) rc.setAiReasons(parsedReasons);
                         }
                     }

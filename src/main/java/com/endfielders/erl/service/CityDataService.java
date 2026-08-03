@@ -25,6 +25,7 @@ public class CityDataService {
     private Map<String, City> pincodeDb = new HashMap<>();
     private List<City> allCities = new ArrayList<>();
 
+    @SuppressWarnings("null")
     @PostConstruct
     public void init() {
         try {
