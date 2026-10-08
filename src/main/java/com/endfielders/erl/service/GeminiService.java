@@ -96,7 +96,6 @@ public class GeminiService {
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                @SuppressWarnings("unchecked")
                 Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
                 if (response == null || !response.containsKey("choices")) return null;
 
@@ -142,7 +141,6 @@ public class GeminiService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            @SuppressWarnings("unchecked")
             Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
             if (response == null || !response.containsKey("candidates")) return null;
 
@@ -210,7 +208,6 @@ public class GeminiService {
 
         try {
             String cleanJson = JsonUtil.extractJson(response);
-            @SuppressWarnings("unchecked")
             Map<String, Integer> map = mapper.readValue(cleanJson, mapper.getTypeFactory().constructMapType(Map.class, String.class, Integer.class));
             return map.isEmpty() ? defaultScores : map;
         } catch (Exception e) {
