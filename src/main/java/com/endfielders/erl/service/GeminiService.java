@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,7 +27,7 @@ public class GeminiService {
     @Value("${groq.api.key:}")
     private String groqApiKey;
 
-    @Value("${groq.model:llama-3.3-70b-versatile}")
+    @Value("${groq.model:llama-3.1-8b-instant}")
     private String groqModel;
 
     @Value("${gemini.api.key:}")
@@ -70,14 +70,33 @@ public class GeminiService {
     }
 
     /**
-     * Execute chat completion call using Groq API (OpenAI compatible).
+     * Execute chat completion call using Groq API (OpenAI compatible)
+     * with multi-model fallback resiliency.
      */
     public String callGroq(String prompt) {
         if (groqApiKey == null || groqApiKey.isBlank()) return null;
 
         String url = "https://api.groq.com/openai/v1/chat/completions";
-        String modelName = (groqModel != null && !groqModel.isBlank()) ? groqModel.trim() : "llama-3.3-70b-versatile";
 
+        List<String> modelsToTry = new ArrayList<>();
+        if (groqModel != null && !groqModel.isBlank()) {
+            modelsToTry.add(groqModel.trim());
+        }
+        if (!modelsToTry.contains("llama-3.1-8b-instant")) modelsToTry.add("llama-3.1-8b-instant");
+        if (!modelsToTry.contains("llama-3.3-70b-versatile")) modelsToTry.add("llama-3.3-70b-versatile");
+        if (!modelsToTry.contains("llama3-8b-8192")) modelsToTry.add("llama3-8b-8192");
+        if (!modelsToTry.contains("mixtral-8x7b-32768")) modelsToTry.add("mixtral-8x7b-32768");
+
+        for (String modelName : modelsToTry) {
+            String response = attemptGroqModel(url, modelName, prompt);
+            if (response != null && !response.isBlank()) {
+                return response;
+            }
+        }
+        return null;
+    }
+
+    private String attemptGroqModel(String url, String modelName, String prompt) {
         Map<String, Object> userMessage = Map.of("role", "user", "content", prompt);
         Map<String, Object> requestBody = Map.of(
                 "model", modelName,
@@ -91,40 +110,37 @@ public class GeminiService {
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        int maxRetries = 2;
-        long waitTimeMs = 1000;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
+            if (response == null || !response.containsKey("choices")) return null;
 
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            List<?> choices = asRawList(response.get("choices"));
+            if (choices == null || choices.isEmpty()) return null;
+
+            Map<?, ?> firstChoice = asRawMap(choices.get(0));
+            if (firstChoice == null) return null;
+
+            Map<?, ?> message = asRawMap(firstChoice.get("message"));
+            if (message == null || message.get("content") == null) return null;
+
+            return message.get("content").toString().trim();
+
+        } catch (HttpClientErrorException.NotFound e) {
+            System.out.println("⚠️ Groq model `" + modelName + "` not available on this key (404), trying next model...");
+            return null;
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            System.out.println("⏳ Groq API Rate Limit (429) on `" + modelName + "`, waiting 1s...");
             try {
-                Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
-                if (response == null || !response.containsKey("choices")) return null;
-
-                List<?> choices = asRawList(response.get("choices"));
-                if (choices == null || choices.isEmpty()) return null;
-
-                Map<?, ?> firstChoice = asRawMap(choices.get(0));
-                if (firstChoice == null) return null;
-
-                Map<?, ?> message = asRawMap(firstChoice.get("message"));
-                if (message == null || message.get("content") == null) return null;
-
-                return message.get("content").toString().trim();
-
-            } catch (HttpClientErrorException.TooManyRequests e) {
-                System.out.println("⏳ Groq API Rate Limit (429) hit. Waiting 1s... (Attempt " + attempt + " of " + maxRetries + ")");
-                if (attempt == maxRetries) return null;
-                try {
-                    Thread.sleep(waitTimeMs);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return null;
-                }
-            } catch (Exception e) {
-                System.out.println("❌ GROQ API ERROR: " + e.getMessage());
-                return null;
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
             }
+            return null;
+        } catch (Exception e) {
+            System.out.println("❌ GROQ API ERROR (" + modelName + "): " + e.getMessage());
+            return null;
         }
-        return null;
     }
 
     /**
@@ -141,6 +157,7 @@ public class GeminiService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         try {
+            @SuppressWarnings("unchecked")
             Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
             if (response == null || !response.containsKey("candidates")) return null;
 
@@ -208,6 +225,7 @@ public class GeminiService {
 
         try {
             String cleanJson = JsonUtil.extractJson(response);
+            @SuppressWarnings("unchecked")
             Map<String, Integer> map = mapper.readValue(cleanJson, mapper.getTypeFactory().constructMapType(Map.class, String.class, Integer.class));
             return map.isEmpty() ? defaultScores : map;
         } catch (Exception e) {
