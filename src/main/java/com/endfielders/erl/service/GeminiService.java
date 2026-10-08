@@ -15,10 +15,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Multi-Provider AI Service supporting Groq API (Primary - OpenAI-compatible)
+ * and Gemini API (Secondary fallback) for high-speed logistics intelligence.
+ */
 @Service
 public class GeminiService {
 
     private static final String GENERAL_GOODS = "General goods";
+
+    @Value("${groq.api.key:}")
+    private String groqApiKey;
+
+    @Value("${groq.model:llama-3.3-70b-versatile}")
+    private String groqModel;
 
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
@@ -32,6 +42,131 @@ public class GeminiService {
         factory.setConnectTimeout(5000);
         factory.setReadTimeout(15000);
         return new RestTemplate(factory);
+    }
+
+    /**
+     * Main AI invocation method:
+     * Attempts Groq API first; if unconfigured or failing, falls back to Gemini API.
+     */
+    public String callGemini(String prompt) {
+        if (prompt == null || prompt.isBlank()) return "Prompt is empty";
+
+        // 1. Try Groq API first if key is present
+        if (groqApiKey != null && !groqApiKey.isBlank()) {
+            String groqResponse = callGroq(prompt);
+            if (groqResponse != null && !groqResponse.isBlank()) {
+                return groqResponse;
+            }
+            System.out.println("[WARN] Groq API returned null, trying Gemini API fallback...");
+        }
+
+        // 2. Try Gemini API fallback
+        if (geminiApiKey != null && !geminiApiKey.isBlank()) {
+            return callGeminiDirect(prompt);
+        }
+
+        System.out.println("❌ NO AI API KEY CONFIGURED (GROQ_API_KEY / GEMINI_API_KEY MISSING)");
+        return null;
+    }
+
+    /**
+     * Execute chat completion call using Groq API (OpenAI compatible).
+     */
+    public String callGroq(String prompt) {
+        if (groqApiKey == null || groqApiKey.isBlank()) return null;
+
+        String url = "https://api.groq.com/openai/v1/chat/completions";
+        String modelName = (groqModel != null && !groqModel.isBlank()) ? groqModel.trim() : "llama-3.3-70b-versatile";
+
+        Map<String, Object> userMessage = Map.of("role", "user", "content", prompt);
+        Map<String, Object> requestBody = Map.of(
+                "model", modelName,
+                "messages", List.of(userMessage),
+                "temperature", 0.2
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(groqApiKey.trim());
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        int maxRetries = 2;
+        long waitTimeMs = 1000;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
+                if (response == null || !response.containsKey("choices")) return null;
+
+                List<?> choices = asRawList(response.get("choices"));
+                if (choices == null || choices.isEmpty()) return null;
+
+                Map<?, ?> firstChoice = asRawMap(choices.get(0));
+                if (firstChoice == null) return null;
+
+                Map<?, ?> message = asRawMap(firstChoice.get("message"));
+                if (message == null || message.get("content") == null) return null;
+
+                return message.get("content").toString().trim();
+
+            } catch (HttpClientErrorException.TooManyRequests e) {
+                System.out.println("⏳ Groq API Rate Limit (429) hit. Waiting 1s... (Attempt " + attempt + " of " + maxRetries + ")");
+                if (attempt == maxRetries) return null;
+                try {
+                    Thread.sleep(waitTimeMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            } catch (Exception e) {
+                System.out.println("❌ GROQ API ERROR: " + e.getMessage());
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Direct Gemini API invocation fallback.
+     */
+    private String callGeminiDirect(String prompt) {
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=" + geminiApiKey;
+        Map<String, Object> textPart = Map.of("text", prompt);
+        Map<String, Object> content = Map.of("parts", List.of(textPart));
+        Map<String, Object> requestBody = Map.of("contents", List.of(content));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            @SuppressWarnings("unchecked")
+            Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
+            if (response == null || !response.containsKey("candidates")) return null;
+
+            List<?> candidates = asRawList(response.get("candidates"));
+            if (candidates == null || candidates.isEmpty()) return null;
+
+            Map<?, ?> first = asRawMap(candidates.get(0));
+            if (first == null) return null;
+
+            Map<?, ?> contentResp = asRawMap(first.get("content"));
+            if (contentResp == null) return null;
+
+            List<?> parts = asRawList(contentResp.get("parts"));
+            if (parts == null || parts.isEmpty()) return null;
+
+            Map<?, ?> part = asRawMap(parts.get(0));
+            if (part == null || part.get("text") == null) return null;
+
+            return part.get("text").toString().trim();
+
+        } catch (Exception e) {
+            System.out.println("❌ GEMINI API ERROR: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -51,73 +186,12 @@ public class GeminiService {
         return "You are an intelligent logistics decision engine.\nAnalyze the shipment and generate a professional risk insight.\n\nShipment Details:\n- Origin: " + origin + "\n- Destination: " + destination + "\n- Cargo: " + safeCargoType + "\n- Conditions: " + weatherSummary + "\n\nRules:\n1. Output only 1 short sentence\n2. No emojis, no symbols, no formatting\n3. Sound like a logistics platform, not a chatbot\n4. Focus on risk, speed, and reliability\n5. Avoid generic phrases\n\nNow generate the insight:";
     }
 
-    public String callGemini(String prompt) {
-        if (geminiApiKey == null || geminiApiKey.isBlank()) {
-            System.out.println("❌ GEMINI API KEY MISSING");
-            return null;
-        }
-        if (prompt == null || prompt.isBlank()) return "Prompt is empty";
-
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=" + geminiApiKey;
-        Map<String, Object> textPart = new HashMap<>(); textPart.put("text", prompt);
-        Map<String, Object> content = new HashMap<>(); content.put("parts", List.of(textPart));
-        Map<String, Object> requestBody = new HashMap<>(); requestBody.put("contents", List.of(content));
-
-        HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
-        int maxRetries = 2;
-        long waitTimeMs = 1500;
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                Map<?, ?> response = restTemplate.postForObject(url, entity, Map.class);
-
-                if (response == null || !response.containsKey("candidates")) return null;
-                List<?> candidates = asRawList(response.get("candidates"));
-                if (candidates == null || candidates.isEmpty()) return null;
-
-                Map<?, ?> first = asRawMap(candidates.get(0));
-                if (first == null) return null;
-
-                Map<?, ?> contentResp = asRawMap(first.get("content"));
-                if (contentResp == null) return null;
-
-                List<?> parts = asRawList(contentResp.get("parts"));
-                if (parts == null || parts.isEmpty()) return null;
-
-                Map<?, ?> part = asRawMap(parts.get(0));
-                if (part == null || part.get("text") == null) return null;
-
-                return part.get("text").toString().trim();
-
-            } catch (HttpClientErrorException.TooManyRequests e) {
-                System.out.println("⏳ Gemini API Rate Limit (429) hit. Waiting 1.5 seconds... (Attempt " + attempt + " of " + maxRetries + ")");
-                if (attempt == maxRetries) {
-                    System.out.println("❌ Max retries reached for Gemini API.");
-                    return null;
-                }
-                try {
-                    Thread.sleep(waitTimeMs);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return null;
-                }
-            } catch (Exception e) {
-                System.out.println("❌ GEMINI ERROR: " + e.getMessage());
-                return null;
-            }
-        }
-        return null;
-    }
-
     /**
-     * Ask Gemini to rate the suitability of a cargo type for Air, Road, and Rail modes.
-     * Returns a map with scores from 1-100.
+     * Ask AI to rate suitability of a cargo type for Air, Road, and Rail modes.
      */
     public Map<String, Integer> getCargoModeSuitability(String cargoType) {
         String safeCargoType = (cargoType == null || cargoType.isBlank()) ? GENERAL_GOODS : cargoType.trim();
-        
+
         String prompt = """
         You are a logistics engine. Rate how suitable "%s" is for different transport modes.
         IMPORTANT RULES:
@@ -129,14 +203,14 @@ public class GeminiService {
 
         String response = callGemini(prompt);
         Map<String, Integer> defaultScores = Map.of("Air", 65, "Road", 65, "Rail", 65);
-        
+
         if (response == null || response.isBlank()) {
             return defaultScores;
         }
 
         try {
             String cleanJson = JsonUtil.extractJson(response);
-            
+            @SuppressWarnings("unchecked")
             Map<String, Integer> map = mapper.readValue(cleanJson, mapper.getTypeFactory().constructMapType(Map.class, String.class, Integer.class));
             return map.isEmpty() ? defaultScores : map;
         } catch (Exception e) {
@@ -146,8 +220,7 @@ public class GeminiService {
     }
 
     /**
-     * Ask Gemini to classify a custom cargo type into one of the logistics categories.
-     * Returns one of: B2B_FREIGHT, E_COMMERCE, HOUSEHOLD, COLD_CHAIN, or GENERAL.
+     * Ask AI to classify custom cargo into logistics category.
      */
     public String resolveCargoCategory(String cargoType) {
         String safeCargoType = (cargoType == null || cargoType.isBlank()) ? GENERAL_GOODS : cargoType.trim();
@@ -176,12 +249,11 @@ public class GeminiService {
 
         String cleaned = response.trim().toUpperCase().replace(" ", "_");
 
-        // Validate it's one of our known categories
         if (Set.of("B2B_FREIGHT", "E_COMMERCE", "HOUSEHOLD", "COLD_CHAIN", "GENERAL").contains(cleaned)) {
             return cleaned;
         }
 
-        System.out.println("[WARN] Gemini returned unknown category: " + response + ", falling back to GENERAL");
+        System.out.println("[WARN] AI returned unknown category: " + response + ", falling back to GENERAL");
         return "GENERAL";
     }
 
@@ -209,6 +281,5 @@ public class GeminiService {
     }
 
     private Map<?, ?> asRawMap(Object value) { return value instanceof Map<?, ?> map ? map : null; }
-
     private List<?> asRawList(Object value) { return value instanceof List<?> list ? list : null; }
 }
