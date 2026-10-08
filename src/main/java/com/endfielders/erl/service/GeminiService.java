@@ -27,7 +27,7 @@ public class GeminiService {
     @Value("${groq.api.key:}")
     private String groqApiKey;
 
-    @Value("${groq.model:llama-3.1-8b-instant}")
+    @Value("${groq.model:openai/gpt-oss-20b}")
     private String groqModel;
 
     @Value("${gemini.api.key:}")
@@ -82,10 +82,9 @@ public class GeminiService {
         if (groqModel != null && !groqModel.isBlank()) {
             modelsToTry.add(groqModel.trim());
         }
-        if (!modelsToTry.contains("llama-3.1-8b-instant")) modelsToTry.add("llama-3.1-8b-instant");
+        if (!modelsToTry.contains("openai/gpt-oss-20b")) modelsToTry.add("openai/gpt-oss-20b");
+        if (!modelsToTry.contains("openai/gpt-oss-120b")) modelsToTry.add("openai/gpt-oss-120b");
         if (!modelsToTry.contains("llama-3.3-70b-versatile")) modelsToTry.add("llama-3.3-70b-versatile");
-        if (!modelsToTry.contains("llama3-8b-8192")) modelsToTry.add("llama3-8b-8192");
-        if (!modelsToTry.contains("mixtral-8x7b-32768")) modelsToTry.add("mixtral-8x7b-32768");
 
         for (String modelName : modelsToTry) {
             String response = attemptGroqModel(url, modelName, prompt);
