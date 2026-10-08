@@ -101,22 +101,24 @@ public class CarrierService {
         // 1b. Deterministic cargo mode suitability engine (0ms local lookup)
         Map<String, Integer> cargoSuitability = cityDataService.getCargoModeSuitability(safeCargoType);
 
-        // 2. Estimate route stops for ALL carriers in parallel
-        Map<Long, CompletableFuture<List<RouteStop>>> stopFuturesMap = new HashMap<>();
+        // 2. Estimate route stops by unique (mode, days) profile to prevent 429 concurrency spikes
+        Map<String, CompletableFuture<List<RouteStop>>> profileFutures = new HashMap<>();
         for (Carrier c : carriers) {
-            stopFuturesMap.put(c.getId(), CompletableFuture.supplyAsync(() ->
+            String profileKey = c.getMode() + ":" + c.getEstimatedDays();
+            profileFutures.computeIfAbsent(profileKey, k -> CompletableFuture.supplyAsync(() ->
                     routeEstimationService.estimateRouteStops(origin, destination, c.getMode(), c.getEstimatedDays())
             ));
         }
 
-        // Wait for all route estimations to complete
-        CompletableFuture.allOf(stopFuturesMap.values().toArray(new CompletableFuture[0])).join();
+        // Wait for unique route estimations to complete
+        CompletableFuture.allOf(profileFutures.values().toArray(new CompletableFuture[0])).join();
         String weatherSummary = weatherSummaryFuture.join();
 
-        // Collect estimated stops per carrier
+        // Map estimated stops to each carrier by its profile
         Map<Long, List<RouteStop>> carrierStopsMap = new HashMap<>();
-        for (Map.Entry<Long, CompletableFuture<List<RouteStop>>> entry : stopFuturesMap.entrySet()) {
-            carrierStopsMap.put(entry.getKey(), entry.getValue().join());
+        for (Carrier c : carriers) {
+            String profileKey = c.getMode() + ":" + c.getEstimatedDays();
+            carrierStopsMap.put(c.getId(), profileFutures.get(profileKey).join());
         }
 
         // -------------------------------------------------------------

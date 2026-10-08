@@ -2,7 +2,7 @@ package com.endfielders.erl.service;
 
 import com.endfielders.erl.model.RouteStop;
 import com.endfielders.erl.util.JsonUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 /**
  * Two-Step Hybrid Route Estimator:
  * Step 1: Spatial Bounding Box math narrows dataset to 3-5 candidate hubs.
- * Step 2: Focused AI prompt asks Gemini to sequence the candidate hubs along Indian highways.
+ * Step 2: Focused AI prompt asks LLM to sequence candidate hubs along Indian highways.
  */
 @Service
 public class RouteEstimationService {
@@ -112,21 +112,48 @@ public class RouteEstimationService {
             try {
                 String cleanJson = JsonUtil.extractJson(aiResponseRaw);
                 if (cleanJson != null && !cleanJson.isBlank()) {
-                    List<Map<String, Object>> parsed = objectMapper.readValue(cleanJson, new TypeReference<>() {});
-                    for (Map<String, Object> item : parsed) {
-                        int day = item.get("day") instanceof Number ? ((Number) item.get("day")).intValue() : 0;
-                        String city = item.get("city") != null ? item.get("city").toString() : "Transit Hub";
+                    JsonNode root = objectMapper.readTree(cleanJson);
+                    JsonNode arrayNode = null;
 
-                        CityDataService.City matchedCity = cityDataService.findByCityName(city);
-                        String pincode = (item.get("pincode") != null && !item.get("pincode").toString().isBlank())
-                                ? item.get("pincode").toString().trim()
-                                : (matchedCity != null ? matchedCity.pincode() : safeOrigin);
+                    if (root.isArray()) {
+                        arrayNode = root;
+                    } else if (root.isObject()) {
+                        // Support wrapped objects e.g. {"route": [...]}, {"stops": [...]}, etc.
+                        for (String key : List.of("stops", "route", "itinerary", "timeline", "transit_stops", "days", "transitStops")) {
+                            if (root.has(key) && root.get(key).isArray()) {
+                                arrayNode = root.get(key);
+                                break;
+                            }
+                        }
+                        if (arrayNode == null) {
+                            var fields = root.elements();
+                            while (fields.hasNext()) {
+                                JsonNode field = fields.next();
+                                if (field.isArray()) {
+                                    arrayNode = field;
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
-                        stops.add(new RouteStop(day, city, pincode));
+                    if (arrayNode != null && arrayNode.isArray()) {
+                        for (JsonNode item : arrayNode) {
+                            int day = item.has("day") ? item.get("day").asInt(0) : 0;
+                            String city = item.has("city") ? item.get("city").asText("Transit Hub") : "Transit Hub";
+                            String pincodeRaw = item.has("pincode") ? item.get("pincode").asText() : "";
+
+                            CityDataService.City matchedCity = cityDataService.findByCityName(city);
+                            String pincode = (!pincodeRaw.isBlank())
+                                    ? pincodeRaw.trim()
+                                    : (matchedCity != null ? matchedCity.pincode() : safeOrigin);
+
+                            stops.add(new RouteStop(day, city, pincode));
+                        }
                     }
                 }
             } catch (Exception e) {
-                System.out.println("[WARN] Gemini route estimation JSON parse failed: " + e.getMessage());
+                System.out.println("[WARN] AI route estimation JSON parse failed: " + e.getMessage());
             }
         }
 
